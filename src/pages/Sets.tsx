@@ -5,15 +5,25 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { pokemonApi } from '@/services/api';
 import { PokemonSet } from '@/types/api';
-import { Search, Calendar, Package } from 'lucide-react';
+import { Search, Calendar, Package, List } from 'lucide-react';
 
 const Sets = () => {
   const [sets, setSets] = useState<PokemonSet[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [filteredSets, setFilteredSets] = useState<PokemonSet[]>([]);
+  const [collectionStatus, setCollectionStatus] = useState('all');
+  const [sortBy, setSortBy] = useState('series');
+  const [sortOrder, setSortOrder] = useState('new-to-old');
+  const [showLogos, setShowLogos] = useState(true);
+  const [selectedSeries, setSelectedSeries] = useState('all');
+
+  // Get unique series from sets
+  const [seriesList, setSeriesList] = useState<string[]>([]);
 
   useEffect(() => {
     const fetchSets = async () => {
@@ -21,6 +31,10 @@ const Sets = () => {
         const response = await pokemonApi.getSets({ orderBy: '-releaseDate' });
         setSets(response.data);
         setFilteredSets(response.data);
+        
+        // Extract unique series
+        const uniqueSeries = [...new Set(response.data.map(set => set.series))];
+        setSeriesList(uniqueSeries);
       } catch (error) {
         console.error('Error fetching sets:', error);
       } finally {
@@ -32,16 +46,45 @@ const Sets = () => {
   }, []);
 
   useEffect(() => {
-    if (searchQuery.trim() === '') {
-      setFilteredSets(sets);
-    } else {
-      const filtered = sets.filter(set =>
+    let filtered = sets;
+
+    // Filter by search query
+    if (searchQuery.trim() !== '') {
+      filtered = filtered.filter(set =>
         set.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         set.series.toLowerCase().includes(searchQuery.toLowerCase())
       );
-      setFilteredSets(filtered);
     }
-  }, [searchQuery, sets]);
+
+    // Filter by series
+    if (selectedSeries !== 'all') {
+      filtered = filtered.filter(set => set.series === selectedSeries);
+    }
+
+    // Filter by collection status (mock implementation)
+    if (collectionStatus === 'in-progress') {
+      // Mock: show random subset as "in progress"
+      filtered = filtered.filter((_, index) => index % 3 === 0);
+    } else if (collectionStatus === 'completed') {
+      // Mock: show random subset as "completed"
+      filtered = filtered.filter((_, index) => index % 4 === 0);
+    }
+
+    // Sort the filtered sets
+    filtered.sort((a, b) => {
+      if (sortBy === 'series') {
+        const seriesCompare = a.series.localeCompare(b.series);
+        return sortOrder === 'new-to-old' ? -seriesCompare : seriesCompare;
+      } else if (sortBy === 'date') {
+        const dateA = new Date(a.releaseDate).getTime();
+        const dateB = new Date(b.releaseDate).getTime();
+        return sortOrder === 'new-to-old' ? dateB - dateA : dateA - dateB;
+      }
+      return 0;
+    });
+
+    setFilteredSets(filtered);
+  }, [searchQuery, sets, collectionStatus, sortBy, sortOrder, selectedSeries]);
 
   if (loading) {
     return (
@@ -55,12 +98,9 @@ const Sets = () => {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900 mb-4">Pokémon TCG Sets</h1>
-        <p className="text-gray-600 mb-6">
-          Explore all Pokémon Trading Card Game sets and their cards
-        </p>
         
         {/* Search Bar */}
-        <div className="relative max-w-md">
+        <div className="relative max-w-md mb-6">
           <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
           <Input
             type="text"
@@ -69,6 +109,102 @@ const Sets = () => {
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-10"
           />
+        </div>
+
+        {/* Status Filter */}
+        <div className="flex items-center gap-4 mb-6">
+          <ToggleGroup type="single" value={collectionStatus} onValueChange={setCollectionStatus}>
+            <ToggleGroupItem value="all">All</ToggleGroupItem>
+            <ToggleGroupItem value="in-progress">In progress</ToggleGroupItem>
+            <ToggleGroupItem value="completed">Completed</ToggleGroupItem>
+          </ToggleGroup>
+          
+          <div className="flex items-center gap-2 ml-auto">
+            <span className="text-sm text-gray-600">Show sets as</span>
+            <Select value={showLogos ? 'logos' : 'text'} onValueChange={(value) => setShowLogos(value === 'logos')}>
+              <SelectTrigger className="w-48">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="logos">Any card variant</SelectItem>
+                <SelectItem value="text">Text only</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        {/* Results count */}
+        <div className="mb-4">
+          <p className="text-gray-600">{filteredSets.length} sets found</p>
+        </div>
+
+        {/* Sort and Display Options */}
+        <div className="flex flex-wrap items-center gap-4 mb-6">
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-gray-600">Sort by</span>
+            <Select value={sortBy} onValueChange={setSortBy}>
+              <SelectTrigger className="w-32">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="series">Series</SelectItem>
+                <SelectItem value="date">Date</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-gray-600">From</span>
+            <Select value={sortOrder} onValueChange={setSortOrder}>
+              <SelectTrigger className="w-32">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="new-to-old">New to old</SelectItem>
+                <SelectItem value="old-to-new">Old to new</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-gray-600">Show</span>
+            <Select value={showLogos ? 'logos' : 'text'} onValueChange={(value) => setShowLogos(value === 'logos')}>
+              <SelectTrigger className="w-24">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="logos">Logos</SelectItem>
+                <SelectItem value="text">Text</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        {/* Series Filter Tabs */}
+        <div className="mb-6">
+          <div className="flex items-center gap-2 mb-4">
+            <List className="h-4 w-4 text-gray-500" />
+            <span className="text-sm text-gray-600">Filter by series:</span>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Button 
+              variant={selectedSeries === 'all' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setSelectedSeries('all')}
+            >
+              All Series
+            </Button>
+            {seriesList.slice(0, 8).map((series) => (
+              <Button
+                key={series}
+                variant={selectedSeries === series ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setSelectedSeries(series)}
+              >
+                {series}
+              </Button>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -85,7 +221,7 @@ const Sets = () => {
                     {new Date(set.releaseDate).getFullYear()}
                   </div>
                 </div>
-                {set.images?.logo && (
+                {showLogos && set.images?.logo && (
                   <div className="flex justify-center mb-4">
                     <img
                       src={set.images.logo}
@@ -125,7 +261,7 @@ const Sets = () => {
 
       {filteredSets.length === 0 && !loading && (
         <div className="text-center py-12">
-          <p className="text-gray-500 text-lg">No sets found matching your search.</p>
+          <p className="text-gray-500 text-lg">No sets found matching your criteria.</p>
         </div>
       )}
     </div>
