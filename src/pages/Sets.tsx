@@ -32,8 +32,8 @@ const Sets = () => {
         setSets(response.data);
         setFilteredSets(response.data);
         
-        // Extract unique series
-        const uniqueSeries = [...new Set(response.data.map(set => set.series))];
+        // Extract unique series with proper typing
+        const uniqueSeries = [...new Set(response.data.map((set: PokemonSet) => set.series))];
         setSeriesList(uniqueSeries);
       } catch (error) {
         console.error('Error fetching sets:', error);
