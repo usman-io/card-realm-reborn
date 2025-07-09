@@ -6,20 +6,45 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { pokemonApi } from '@/services/api';
-import { PokemonCard } from '@/types/api';
-import { Search, Grid, List, Heart, Plus } from 'lucide-react';
+import { PokemonCard, PokemonSet } from '@/types/api';
+import { Search, Grid, List, Heart, Plus, Filter, ChevronDown, X } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 
 const Cards = () => {
   const [cards, setCards] = useState<PokemonCard[]>([]);
+  const [sets, setSets] = useState<PokemonSet[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchParams, setSearchParams] = useSearchParams();
   const [searchQuery, setSearchQuery] = useState(searchParams.get('q') || '');
   const [displayMode, setDisplayMode] = useState<'grid' | 'list'>('grid');
   const [sortBy, setSortBy] = useState('name');
   const [page, setPage] = useState(1);
+  const [selectedSets, setSelectedSets] = useState<string[]>([]);
+  const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
+  const [selectedRarities, setSelectedRarities] = useState<string[]>([]);
+  const [selectedSubtypes, setSelectedSubtypes] = useState<string[]>([]);
+  const [showFilters, setShowFilters] = useState(false);
   const { isAuthenticated } = useAuth();
+
+  const types = ['Colorless', 'Darkness', 'Dragon', 'Fairy', 'Fighting', 'Fire', 'Grass', 'Lightning', 'Metal', 'Psychic', 'Water'];
+  const rarities = ['Common', 'Uncommon', 'Rare', 'Rare Holo', 'Rare Holo EX', 'Rare Holo GX', 'Rare Holo V', 'Rare Holo VMAX', 'Rare Rainbow', 'Rare Secret', 'Rare Shiny', 'Rare Shiny GX', 'Rare Ultra'];
+  const subtypes = ['Basic', 'Stage 1', 'Stage 2', 'EX', 'GX', 'V', 'VMAX', 'VSTAR', 'ex', 'Supporter', 'Item', 'Stadium', 'Tool', 'Special Energy'];
+
+  useEffect(() => {
+    fetchSets();
+  }, []);
+
+  const fetchSets = async () => {
+    try {
+      const response = await pokemonApi.getSets({ orderBy: '-releaseDate', pageSize: '100' });
+      setSets(response.data || []);
+    } catch (error) {
+      console.error('Error fetching sets:', error);
+    }
+  };
 
   const fetchCards = async (query: string = '', pageNum: number = 1) => {
     setLoading(true);
@@ -30,8 +55,31 @@ const Cards = () => {
         orderBy: sortBy,
       };
 
+      // Build query string
+      const queryParts: string[] = [];
+      
       if (query.trim()) {
-        params.q = `name:${query}*`;
+        queryParts.push(`name:${query}*`);
+      }
+
+      if (selectedSets.length > 0) {
+        queryParts.push(`set.id:"${selectedSets.join('" OR set.id:"')}"`);
+      }
+
+      if (selectedTypes.length > 0) {
+        queryParts.push(`types:"${selectedTypes.join('" OR types:"')}"`);
+      }
+
+      if (selectedRarities.length > 0) {
+        queryParts.push(`rarity:"${selectedRarities.join('" OR rarity:"')}"`);
+      }
+
+      if (selectedSubtypes.length > 0) {
+        queryParts.push(`subtypes:"${selectedSubtypes.join('" OR subtypes:"')}"`);
+      }
+
+      if (queryParts.length > 0) {
+        params.q = queryParts.join(' AND ');
       }
 
       const response = await pokemonApi.getCards(params);
@@ -46,7 +94,7 @@ const Cards = () => {
 
   useEffect(() => {
     fetchCards(searchQuery, page);
-  }, [sortBy, page]);
+  }, [sortBy, page, selectedSets, selectedTypes, selectedRarities, selectedSubtypes]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -54,6 +102,33 @@ const Cards = () => {
     fetchCards(searchQuery, 1);
     setSearchParams(searchQuery ? { q: searchQuery } : {});
   };
+
+  const handleFilterChange = (filterType: string, value: string, checked: boolean) => {
+    const setters = {
+      sets: setSelectedSets,
+      types: setSelectedTypes,
+      rarities: setSelectedRarities,
+      subtypes: setSelectedSubtypes,
+    };
+
+    const setter = setters[filterType as keyof typeof setters];
+    if (setter) {
+      setter(prev => 
+        checked 
+          ? [...prev, value]
+          : prev.filter(item => item !== value)
+      );
+    }
+  };
+
+  const clearFilters = () => {
+    setSelectedSets([]);
+    setSelectedTypes([]);
+    setSelectedRarities([]);
+    setSelectedSubtypes([]);
+  };
+
+  const activeFiltersCount = selectedSets.length + selectedTypes.length + selectedRarities.length + selectedSubtypes.length;
 
   const addToCollection = (cardId: string) => {
     console.log('Add to collection:', cardId);
@@ -78,7 +153,7 @@ const Cards = () => {
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900 mb-4">Pokémon Cards</h1>
         
-        {/* Search and Filters */}
+        {/* Search and Controls */}
         <div className="flex flex-col md:flex-row gap-4 mb-6">
           <form onSubmit={handleSearch} className="flex-1">
             <div className="relative">
@@ -94,15 +169,33 @@ const Cards = () => {
           </form>
           
           <div className="flex gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setShowFilters(!showFilters)}
+              className="relative"
+            >
+              <Filter className="h-4 w-4 mr-2" />
+              Filters
+              {activeFiltersCount > 0 && (
+                <Badge variant="secondary" className="ml-2 h-5 w-5 p-0 flex items-center justify-center text-xs">
+                  {activeFiltersCount}
+                </Badge>
+              )}
+            </Button>
+            
             <Select value={sortBy} onValueChange={setSortBy}>
               <SelectTrigger className="w-48">
                 <SelectValue placeholder="Sort by" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="name">Name</SelectItem>
+                <SelectItem value="name">Name (A-Z)</SelectItem>
+                <SelectItem value="-name">Name (Z-A)</SelectItem>
                 <SelectItem value="-releaseDate">Release Date (New)</SelectItem>
                 <SelectItem value="releaseDate">Release Date (Old)</SelectItem>
-                <SelectItem value="number">Number</SelectItem>
+                <SelectItem value="number">Number (Low-High)</SelectItem>
+                <SelectItem value="-number">Number (High-Low)</SelectItem>
+                <SelectItem value="hp">HP (Low-High)</SelectItem>
+                <SelectItem value="-hp">HP (High-Low)</SelectItem>
               </SelectContent>
             </Select>
             
@@ -124,6 +217,121 @@ const Cards = () => {
             </div>
           </div>
         </div>
+
+        {/* Filters Panel */}
+        {showFilters && (
+          <Card className="mb-6">
+            <CardContent className="p-6">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-semibold">Filters</h3>
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" onClick={clearFilters}>
+                    <X className="h-4 w-4 mr-1" />
+                    Clear All
+                  </Button>
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                {/* Sets Filter */}
+                <Collapsible>
+                  <CollapsibleTrigger className="flex items-center justify-between w-full p-2 text-left font-medium">
+                    Sets ({selectedSets.length})
+                    <ChevronDown className="h-4 w-4" />
+                  </CollapsibleTrigger>
+                  <CollapsibleContent className="max-h-48 overflow-y-auto space-y-2">
+                    {sets.slice(0, 20).map((set) => (
+                      <div key={set.id} className="flex items-center space-x-2">
+                        <Checkbox
+                          id={`set-${set.id}`}
+                          checked={selectedSets.includes(set.id)}
+                          onCheckedChange={(checked) => 
+                            handleFilterChange('sets', set.id, checked as boolean)
+                          }
+                        />
+                        <label htmlFor={`set-${set.id}`} className="text-sm">
+                          {set.name}
+                        </label>
+                      </div>
+                    ))}
+                  </CollapsibleContent>
+                </Collapsible>
+
+                {/* Types Filter */}
+                <Collapsible>
+                  <CollapsibleTrigger className="flex items-center justify-between w-full p-2 text-left font-medium">
+                    Types ({selectedTypes.length})
+                    <ChevronDown className="h-4 w-4" />
+                  </CollapsibleTrigger>
+                  <CollapsibleContent className="space-y-2">
+                    {types.map((type) => (
+                      <div key={type} className="flex items-center space-x-2">
+                        <Checkbox
+                          id={`type-${type}`}
+                          checked={selectedTypes.includes(type)}
+                          onCheckedChange={(checked) => 
+                            handleFilterChange('types', type, checked as boolean)
+                          }
+                        />
+                        <label htmlFor={`type-${type}`} className="text-sm">
+                          {type}
+                        </label>
+                      </div>
+                    ))}
+                  </CollapsibleContent>
+                </Collapsible>
+
+                {/* Rarities Filter */}
+                <Collapsible>
+                  <CollapsibleTrigger className="flex items-center justify-between w-full p-2 text-left font-medium">
+                    Rarities ({selectedRarities.length})
+                    <ChevronDown className="h-4 w-4" />
+                  </CollapsibleTrigger>
+                  <CollapsibleContent className="max-h-48 overflow-y-auto space-y-2">
+                    {rarities.map((rarity) => (
+                      <div key={rarity} className="flex items-center space-x-2">
+                        <Checkbox
+                          id={`rarity-${rarity}`}
+                          checked={selectedRarities.includes(rarity)}
+                          onCheckedChange={(checked) => 
+                            handleFilterChange('rarities', rarity, checked as boolean)
+                          }
+                        />
+                        <label htmlFor={`rarity-${rarity}`} className="text-sm">
+                          {rarity}
+                        </label>
+                      </div>
+                    ))}
+                  </CollapsibleContent>
+                </Collapsible>
+
+                {/* Subtypes Filter */}
+                <Collapsible>
+                  <CollapsibleTrigger className="flex items-center justify-between w-full p-2 text-left font-medium">
+                    Subtypes ({selectedSubtypes.length})
+                    <ChevronDown className="h-4 w-4" />
+                  </CollapsibleTrigger>
+                  <CollapsibleContent className="space-y-2">
+                    {subtypes.map((subtype) => (
+                      <div key={subtype} className="flex items-center space-x-2">
+                        <Checkbox
+                          id={`subtype-${subtype}`}
+                          checked={selectedSubtypes.includes(subtype)}
+                          onCheckedChange={(checked) => 
+                            handleFilterChange('subtypes', subtype, checked as boolean)
+                          }
+                        />
+                        <label htmlFor={`subtype-${subtype}`} className="text-sm">
+                          {subtype}
+                        </label>
+                      </div>
+                    ))}
+                  </CollapsibleContent>
+                </Collapsible>
+              </div>
+            </CardContent>
+          </Card>
+        )}
       </div>
 
       {/* Cards Display */}
