@@ -133,4 +133,36 @@ export const backendApi = {
     });
     return response.json();
   },
+
+  // Subscription API calls
+  async getSubscription(token: string) {
+    const response = await fetch(`${API_BASE_URL}/subscription/`, {
+      headers: {
+        'Authorization': `Token ${token}`,
+      },
+    });
+    return response.json();
+  },
+
+  async createCheckoutSession(token: string, plan: 'monthly' | 'yearly') {
+    const response = await fetch(`${API_BASE_URL}/create-checkout-session/`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Token ${token}`,
+      },
+      body: JSON.stringify({ plan }),
+    });
+    return response.json();
+  },
+
+  async createPortalSession(token: string) {
+    const response = await fetch(`${API_BASE_URL}/create-portal-session/`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Token ${token}`,
+      },
+    });
+    return response.json();
+  },
 };

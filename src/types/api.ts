@@ -108,6 +108,17 @@ export interface Wishlist {
   added_date: string;
 }
 
+export interface Subscription {
+  id: number;
+  plan: 'monthly' | 'yearly';
+  status: 'active' | 'canceled' | 'incomplete' | 'past_due';
+  current_period_start: string;
+  current_period_end: string;
+  created_at: string;
+  is_active: boolean;
+  subscribed?: boolean;
+}
+
 export interface AuthResponse {
   token: string;
   user: User;

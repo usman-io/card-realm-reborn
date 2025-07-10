@@ -21,6 +21,7 @@ INSTALLED_APPS = [
     'corsheaders',
     'accounts',
     'collection',
+    'subscriptions',
 ]
 
 MIDDLEWARE = [
@@ -80,6 +81,11 @@ CORS_ALLOW_CREDENTIALS = True
 
 # Pokemon TCG API
 POKEMON_API_KEY = config('POKEMON_API_KEY', default='')
+
+# Stripe settings
+STRIPE_PUBLIC_KEY = config('STRIPE_PUBLIC_KEY', default='')
+STRIPE_SECRET_KEY = config('STRIPE_SECRET_KEY', default='')
+STRIPE_WEBHOOK_SECRET = config('STRIPE_WEBHOOK_SECRET', default='')
 
 LANGUAGE_CODE = 'en-us'
 TIME_ZONE = 'UTC'
