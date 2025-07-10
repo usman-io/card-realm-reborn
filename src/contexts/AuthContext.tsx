@@ -6,7 +6,7 @@ import { backendApi } from '@/services/api';
 interface AuthContextType {
   user: User | null;
   token: string | null;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<boolean>;
   register: (userData: {
     first_name: string;
     last_name: string;
@@ -51,11 +51,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, [token]);
 
-  const login = async (email: string, password: string) => {
-    const response: AuthResponse = await backendApi.login({ email, password });
-    setToken(response.token);
-    setUser(response.user);
-    localStorage.setItem('token', response.token);
+  const login = async (email: string, password: string): Promise<boolean> => {
+    try {
+      const response = await backendApi.login({ email, password });
+      if (response.token && response.user) {
+        setToken(response.token);
+        setUser(response.user);
+        localStorage.setItem('token', response.token);
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error('Login error:', error);
+      return false;
+    }
   };
 
   const register = async (userData: {

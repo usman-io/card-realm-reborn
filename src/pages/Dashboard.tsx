@@ -15,19 +15,42 @@ const Dashboard = () => {
 
   useEffect(() => {
     const fetchData = async () => {
-      if (token) {
-        try {
-          const [collectionData, wishlistData] = await Promise.all([
-            backendApi.getCollection(token),
-            backendApi.getWishlist(token)
-          ]);
-          setCollection(collectionData);
-          setWishlist(wishlistData);
-        } catch (error) {
-          console.error('Error fetching dashboard data:', error);
-        } finally {
-          setLoading(false);
-        }
+      if (!token) {
+        setLoading(false);
+        return;
+      }
+
+      try {
+        setLoading(true);
+        
+        const [collectionResponse, wishlistResponse] = await Promise.all([
+          backendApi.getCollection(token),
+          backendApi.getWishlist(token)
+        ]);
+
+        // Handle collection data - check if it's an array or has a results property
+        const collectionData = Array.isArray(collectionResponse) 
+          ? collectionResponse 
+          : Array.isArray(collectionResponse?.results) 
+            ? collectionResponse.results 
+            : [];
+
+        // Handle wishlist data - check if it's an array or has a results property
+        const wishlistData = Array.isArray(wishlistResponse)
+          ? wishlistResponse
+          : Array.isArray(wishlistResponse?.results)
+            ? wishlistResponse.results
+            : [];
+
+        setCollection(collectionData);
+        setWishlist(wishlistData);
+      } catch (error) {
+        console.error('Error fetching dashboard data:', error);
+        // Set empty arrays on error to prevent reduce errors
+        setCollection([]);
+        setWishlist([]);
+      } finally {
+        setLoading(false);
       }
     };
 

@@ -1,6 +1,6 @@
 
 from django.db import models
-from django.contrib.auth.models import User
+from django.conf import settings
 
 class Collection(models.Model):
     CONDITION_CHOICES = [
@@ -13,7 +13,7 @@ class Collection(models.Model):
         ('poor', 'Poor'),
     ]
 
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     card_id = models.CharField(max_length=100)  # Pokemon TCG API card ID
     quantity = models.PositiveIntegerField(default=1)
     condition = models.CharField(max_length=20, choices=CONDITION_CHOICES, default='near_mint')
@@ -31,7 +31,7 @@ class Wishlist(models.Model):
         ('urgent', 'Urgent'),
     ]
 
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     card_id = models.CharField(max_length=100)  # Pokemon TCG API card ID
     priority = models.CharField(max_length=10, choices=PRIORITY_CHOICES, default='medium')
     added_date = models.DateTimeField(auto_now_add=True)

@@ -9,8 +9,9 @@ SECRET_KEY = config('SECRET_KEY', default='your-secret-key-here')
 DEBUG = config('DEBUG', default=True, cast=bool)
 ALLOWED_HOSTS = ['localhost', '127.0.0.1']
 
+AUTH_USER_MODEL = 'accounts.User'
+
 INSTALLED_APPS = [
-    'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
@@ -22,6 +23,7 @@ INSTALLED_APPS = [
     'accounts',
     'collection',
     'subscriptions',
+    'django.contrib.admin',  # Keep admin after our apps
 ]
 
 MIDDLEWARE = [
@@ -77,7 +79,13 @@ CORS_ALLOWED_ORIGINS = [
     "http://127.0.0.1:3000",
 ]
 
-CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOW_CREDENTIALS = False
+
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:3000",
+    "http://localhost:8000",
+    "http://localhost:8080",
+]
 
 # Pokemon TCG API
 POKEMON_API_KEY = config('POKEMON_API_KEY', default='')

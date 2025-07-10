@@ -1,15 +1,17 @@
 
 from django.contrib import admin
-from .models import CollectionItem, WishlistItem
+from collection.models import Collection, Wishlist
 
-@admin.register(CollectionItem)
+@admin.register(Collection)
 class CollectionItemAdmin(admin.ModelAdmin):
-    list_display = ['user', 'card_id', 'quantity', 'condition', 'created_at']
-    list_filter = ['condition', 'created_at']
+    list_display = ['user', 'card_id', 'quantity', 'condition', 'added_date', 'updated_date']
+    list_filter = ['condition', 'added_date']
     search_fields = ['user__email', 'card_id']
+    readonly_fields = ['added_date', 'updated_date']
 
-@admin.register(WishlistItem)
+@admin.register(Wishlist)
 class WishlistItemAdmin(admin.ModelAdmin):
-    list_display = ['user', 'card_id', 'priority', 'created_at']
-    list_filter = ['priority', 'created_at']
+    list_display = ['user', 'card_id', 'priority', 'added_date']
+    list_filter = ['priority', 'added_date']
     search_fields = ['user__email', 'card_id']
+    readonly_fields = ['added_date']

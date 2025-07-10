@@ -1,6 +1,6 @@
 
 from django.db import models
-from django.contrib.auth.models import User
+from django.conf import settings
 
 class Subscription(models.Model):
     PLAN_CHOICES = [
@@ -15,7 +15,7 @@ class Subscription(models.Model):
         ('past_due', 'Past Due'),
     ]
     
-    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='subscription')
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='subscription')
     stripe_customer_id = models.CharField(max_length=255, unique=True)
     stripe_subscription_id = models.CharField(max_length=255, unique=True, null=True, blank=True)
     plan = models.CharField(max_length=20, choices=PLAN_CHOICES)
