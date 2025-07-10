@@ -4,13 +4,16 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { backendApi } from '@/services/api';
-import { Collection, Wishlist } from '@/types/api';
+import { Collection, Wishlist, CollectionStats } from '@/types/api';
+import { Edit, Trash2 } from 'lucide-react';
 
 const Dashboard = () => {
   const { user, token } = useAuth();
   const [collection, setCollection] = useState<Collection[]>([]);
   const [wishlist, setWishlist] = useState<Wishlist[]>([]);
+  const [stats, setStats] = useState<CollectionStats | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -23,32 +26,20 @@ const Dashboard = () => {
       try {
         setLoading(true);
         
-        const [collectionResponse, wishlistResponse] = await Promise.all([
+        const [collectionResponse, wishlistResponse, statsResponse] = await Promise.all([
           backendApi.getCollection(token),
-          backendApi.getWishlist(token)
+          backendApi.getWishlist(token),
+          backendApi.getCollectionStats(token)
         ]);
 
-        // Handle collection data - check if it's an array or has a results property
-        const collectionData = Array.isArray(collectionResponse) 
-          ? collectionResponse 
-          : Array.isArray(collectionResponse?.results) 
-            ? collectionResponse.results 
-            : [];
-
-        // Handle wishlist data - check if it's an array or has a results property
-        const wishlistData = Array.isArray(wishlistResponse)
-          ? wishlistResponse
-          : Array.isArray(wishlistResponse?.results)
-            ? wishlistResponse.results
-            : [];
-
-        setCollection(collectionData);
-        setWishlist(wishlistData);
+        setCollection(Array.isArray(collectionResponse) ? collectionResponse : []);
+        setWishlist(Array.isArray(wishlistResponse) ? wishlistResponse : []);
+        setStats(statsResponse);
       } catch (error) {
         console.error('Error fetching dashboard data:', error);
-        // Set empty arrays on error to prevent reduce errors
         setCollection([]);
         setWishlist([]);
+        setStats(null);
       } finally {
         setLoading(false);
       }
@@ -56,6 +47,28 @@ const Dashboard = () => {
 
     fetchData();
   }, [token]);
+
+  const handleDeleteCollection = async (id: number) => {
+    if (!token) return;
+    
+    try {
+      await backendApi.deleteCollectionItem(token, id);
+      setCollection(prev => prev.filter(item => item.id !== id));
+    } catch (error) {
+      console.error('Error deleting collection item:', error);
+    }
+  };
+
+  const handleDeleteWishlist = async (id: number) => {
+    if (!token) return;
+    
+    try {
+      await backendApi.deleteWishlistItem(token, id);
+      setWishlist(prev => prev.filter(item => item.id !== id));
+    } catch (error) {
+      console.error('Error deleting wishlist item:', error);
+    }
+  };
 
   if (loading) {
     return (
@@ -85,10 +98,10 @@ const Dashboard = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {collection.reduce((sum, item) => sum + item.quantity, 0)}
+              {stats?.total_cards || 0}
             </div>
             <p className="text-xs text-muted-foreground">
-              Unique cards: {collection.length}
+              Unique cards: {stats?.unique_cards || 0}
             </p>
           </CardContent>
         </Card>
@@ -99,7 +112,7 @@ const Dashboard = () => {
             <Badge variant="secondary">🎯</Badge>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{wishlist.length}</div>
+            <div className="text-2xl font-bold">{stats?.wishlist_count || 0}</div>
             <p className="text-xs text-muted-foreground">
               Cards you want to collect
             </p>
@@ -156,17 +169,31 @@ const Dashboard = () => {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {collection.slice(0, 5).map((item) => (
+                  {collection.slice(0, 10).map((item) => (
                     <div key={item.id} className="flex items-center justify-between p-4 border rounded-lg">
-                      <div>
+                      <div className="flex-1">
                         <p className="font-medium">Card ID: {item.card_id}</p>
                         <p className="text-sm text-gray-500">
-                          Quantity: {item.quantity} | Condition: {item.condition}
+                          Quantity: {item.quantity} | Condition: {item.condition} | Variant: {item.variant}
                         </p>
+                        {item.notes && (
+                          <p className="text-sm text-gray-600 mt-1 italic">
+                            Note: {item.notes}
+                          </p>
+                        )}
                       </div>
-                      <Badge variant="outline">
-                        {new Date(item.added_date).toLocaleDateString()}
-                      </Badge>
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline">
+                          {new Date(item.added_date).toLocaleDateString()}
+                        </Badge>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDeleteCollection(item.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -193,15 +220,29 @@ const Dashboard = () => {
                 <div className="space-y-4">
                   {wishlist.map((item) => (
                     <div key={item.id} className="flex items-center justify-between p-4 border rounded-lg">
-                      <div>
+                      <div className="flex-1">
                         <p className="font-medium">Card ID: {item.card_id}</p>
                         <p className="text-sm text-gray-500">
                           Priority: {item.priority}
                         </p>
+                        {item.notes && (
+                          <p className="text-sm text-gray-600 mt-1 italic">
+                            Note: {item.notes}
+                          </p>
+                        )}
                       </div>
-                      <Badge variant="outline">
-                        {new Date(item.added_date).toLocaleDateString()}
-                      </Badge>
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline">
+                          {new Date(item.added_date).toLocaleDateString()}
+                        </Badge>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDeleteWishlist(item.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </div>
                   ))}
                 </div>

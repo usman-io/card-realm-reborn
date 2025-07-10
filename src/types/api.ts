@@ -97,7 +97,12 @@ export interface Collection {
   card_id: string;
   quantity: number;
   condition: string;
+  variant: string;
+  language: string;
+  is_graded: boolean;
+  notes: string;
   added_date: string;
+  updated_date: string;
 }
 
 export interface Wishlist {
@@ -106,6 +111,13 @@ export interface Wishlist {
   card_id: string;
   priority: string;
   added_date: string;
+  notes: string;
+}
+
+export interface CollectionStats {
+  total_cards: number;
+  unique_cards: number;
+  wishlist_count: number;
 }
 
 export interface Subscription {

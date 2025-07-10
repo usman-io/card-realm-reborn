@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
@@ -12,6 +11,8 @@ import { pokemonApi } from '@/services/api';
 import { PokemonCard, PokemonSet } from '@/types/api';
 import { Search, Grid, List, Heart, Plus, Filter, ChevronDown, X } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import AddToCollectionDialog from '@/components/AddToCollectionDialog';
+import AddToWishlistDialog from '@/components/AddToWishlistDialog';
 
 const Cards = () => {
   const [cards, setCards] = useState<PokemonCard[]>([]);
@@ -27,6 +28,9 @@ const Cards = () => {
   const [selectedRarities, setSelectedRarities] = useState<string[]>([]);
   const [selectedSubtypes, setSelectedSubtypes] = useState<string[]>([]);
   const [showFilters, setShowFilters] = useState(false);
+  const [selectedCard, setSelectedCard] = useState<PokemonCard | null>(null);
+  const [showCollectionDialog, setShowCollectionDialog] = useState(false);
+  const [showWishlistDialog, setShowWishlistDialog] = useState(false);
   const { isAuthenticated } = useAuth();
 
   const types = ['Colorless', 'Darkness', 'Dragon', 'Fairy', 'Fighting', 'Fire', 'Grass', 'Lightning', 'Metal', 'Psychic', 'Water'];
@@ -130,14 +134,14 @@ const Cards = () => {
 
   const activeFiltersCount = selectedSets.length + selectedTypes.length + selectedRarities.length + selectedSubtypes.length;
 
-  const addToCollection = (cardId: string) => {
-    console.log('Add to collection:', cardId);
-    // This would call the backend API
+  const addToCollection = (card: PokemonCard) => {
+    setSelectedCard(card);
+    setShowCollectionDialog(true);
   };
 
-  const addToWishlist = (cardId: string) => {
-    console.log('Add to wishlist:', cardId);
-    // This would call the backend API
+  const addToWishlist = (card: PokemonCard) => {
+    setSelectedCard(card);
+    setShowWishlistDialog(true);
   };
 
   if (loading) {
@@ -367,7 +371,7 @@ const Cards = () => {
                         size="sm"
                         variant="ghost"
                         className="h-6 w-6 p-0"
-                        onClick={() => addToCollection(card.id)}
+                        onClick={() => addToCollection(card)}
                       >
                         <Plus className="h-3 w-3" />
                       </Button>
@@ -375,7 +379,7 @@ const Cards = () => {
                         size="sm"
                         variant="ghost"
                         className="h-6 w-6 p-0"
-                        onClick={() => addToWishlist(card.id)}
+                        onClick={() => addToWishlist(card)}
                       >
                         <Heart className="h-3 w-3" />
                       </Button>
@@ -423,7 +427,7 @@ const Cards = () => {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => addToCollection(card.id)}
+                        onClick={() => addToCollection(card)}
                       >
                         <Plus className="h-4 w-4 mr-1" />
                         Collect
@@ -431,7 +435,7 @@ const Cards = () => {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => addToWishlist(card.id)}
+                        onClick={() => addToWishlist(card)}
                       >
                         <Heart className="h-4 w-4 mr-1" />
                         Wishlist
@@ -449,6 +453,22 @@ const Cards = () => {
         <div className="text-center py-12">
           <p className="text-gray-500 text-lg">No cards found.</p>
         </div>
+      )}
+
+      {/* Dialogs */}
+      {selectedCard && (
+        <>
+          <AddToCollectionDialog
+            open={showCollectionDialog}
+            onOpenChange={setShowCollectionDialog}
+            card={selectedCard}
+          />
+          <AddToWishlistDialog
+            open={showWishlistDialog}
+            onOpenChange={setShowWishlistDialog}
+            card={selectedCard}
+          />
+        </>
       )}
     </div>
   );

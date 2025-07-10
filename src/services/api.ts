@@ -89,6 +89,10 @@ export const backendApi = {
     card_id: string;
     quantity: number;
     condition: string;
+    variant?: string;
+    language?: string;
+    is_graded?: boolean;
+    notes?: string;
   }) {
     const response = await fetch(`${API_BASE_URL}/collection/`, {
       method: 'POST',
@@ -101,18 +105,43 @@ export const backendApi = {
     return response.json();
   },
 
-  async getCollection(token: string) {
-    const response = await fetch(`${API_BASE_URL}/collection/`, {
+  async getCollection(token: string, params: Record<string, string> = {}) {
+    const searchParams = new URLSearchParams(params);
+    const url = `${API_BASE_URL}/collection/${searchParams.toString() ? '?' + searchParams.toString() : ''}`;
+    const response = await fetch(url, {
       headers: {
         'Authorization': `Token ${token}`,
       },
     });
     return response.json();
+  },
+
+  async updateCollectionItem(token: string, id: number, data: any) {
+    const response = await fetch(`${API_BASE_URL}/collection/${id}/`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Token ${token}`,
+      },
+      body: JSON.stringify(data),
+    });
+    return response.json();
+  },
+
+  async deleteCollectionItem(token: string, id: number) {
+    const response = await fetch(`${API_BASE_URL}/collection/${id}/`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Token ${token}`,
+      },
+    });
+    return response.ok;
   },
 
   async addToWishlist(token: string, cardData: {
     card_id: string;
     priority: string;
+    notes?: string;
   }) {
     const response = await fetch(`${API_BASE_URL}/wishlist/`, {
       method: 'POST',
@@ -125,8 +154,41 @@ export const backendApi = {
     return response.json();
   },
 
-  async getWishlist(token: string) {
-    const response = await fetch(`${API_BASE_URL}/wishlist/`, {
+  async getWishlist(token: string, params: Record<string, string> = {}) {
+    const searchParams = new URLSearchParams(params);
+    const url = `${API_BASE_URL}/wishlist/${searchParams.toString() ? '?' + searchParams.toString() : ''}`;
+    const response = await fetch(url, {
+      headers: {
+        'Authorization': `Token ${token}`,
+      },
+    });
+    return response.json();
+  },
+
+  async updateWishlistItem(token: string, id: number, data: any) {
+    const response = await fetch(`${API_BASE_URL}/wishlist/${id}/`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Token ${token}`,
+      },
+      body: JSON.stringify(data),
+    });
+    return response.json();
+  },
+
+  async deleteWishlistItem(token: string, id: number) {
+    const response = await fetch(`${API_BASE_URL}/wishlist/${id}/`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Token ${token}`,
+      },
+    });
+    return response.ok;
+  },
+
+  async getCollectionStats(token: string) {
+    const response = await fetch(`${API_BASE_URL}/collection/stats/`, {
       headers: {
         'Authorization': `Token ${token}`,
       },
