@@ -70,3 +70,17 @@ class Wishlist(models.Model):
 
     def __str__(self):
         return f"{self.user.email} - {self.card_id}"
+
+class CardNote(models.Model):
+    """Standalone notes for cards that aren't in collection or wishlist"""
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    card_id = models.CharField(max_length=100)  # Pokemon TCG API card ID
+    note = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ['user', 'card_id']
+
+    def __str__(self):
+        return f"{self.user.email} - {self.card_id} - Note"

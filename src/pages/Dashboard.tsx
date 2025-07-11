@@ -6,14 +6,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { backendApi } from '@/services/api';
-import { Collection, Wishlist, CollectionStats } from '@/types/api';
-import { Edit, Trash2 } from 'lucide-react';
+import { Collection, Wishlist, DashboardAnalytics } from '@/types/api';
+import { Edit, Trash2, ChevronRight, Trophy, BarChart3, Heart, Copy, Award, Clock } from 'lucide-react';
 
 const Dashboard = () => {
   const { user, token } = useAuth();
   const [collection, setCollection] = useState<Collection[]>([]);
   const [wishlist, setWishlist] = useState<Wishlist[]>([]);
-  const [stats, setStats] = useState<CollectionStats | null>(null);
+  const [analytics, setAnalytics] = useState<DashboardAnalytics | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -26,20 +26,20 @@ const Dashboard = () => {
       try {
         setLoading(true);
         
-        const [collectionResponse, wishlistResponse, statsResponse] = await Promise.all([
+        const [collectionResponse, wishlistResponse, analyticsResponse] = await Promise.all([
           backendApi.getCollection(token),
           backendApi.getWishlist(token),
-          backendApi.getCollectionStats(token)
+          backendApi.getDashboardAnalytics(token)
         ]);
 
         setCollection(Array.isArray(collectionResponse) ? collectionResponse : []);
         setWishlist(Array.isArray(wishlistResponse) ? wishlistResponse : []);
-        setStats(statsResponse);
+        setAnalytics(analyticsResponse);
       } catch (error) {
         console.error('Error fetching dashboard data:', error);
         setCollection([]);
         setWishlist([]);
-        setStats(null);
+        setAnalytics(null);
       } finally {
         setLoading(false);
       }
@@ -98,10 +98,10 @@ const Dashboard = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {stats?.total_cards || 0}
+              {analytics?.total_cards || 0}
             </div>
             <p className="text-xs text-muted-foreground">
-              Unique cards: {stats?.unique_cards || 0}
+              Unique cards: {analytics?.unique_cards || 0}
             </p>
           </CardContent>
         </Card>
@@ -112,7 +112,7 @@ const Dashboard = () => {
             <Badge variant="secondary">🎯</Badge>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats?.wishlist_count || 0}</div>
+            <div className="text-2xl font-bold">{analytics?.wishlist_count || 0}</div>
             <p className="text-xs text-muted-foreground">
               Cards you want to collect
             </p>
@@ -125,7 +125,7 @@ const Dashboard = () => {
             <Badge variant="secondary">💰</Badge>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">$0.00</div>
+            <div className="text-2xl font-bold">${analytics?.estimated_value?.toFixed(2) || '0.00'}</div>
             <p className="text-xs text-muted-foreground">
               Estimated market value
             </p>
@@ -138,13 +138,194 @@ const Dashboard = () => {
             <Badge variant="secondary">📈</Badge>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">0%</div>
+            <div className="text-2xl font-bold">{analytics?.completion_rate || 0}%</div>
             <p className="text-xs text-muted-foreground">
               Overall collection progress
             </p>
           </CardContent>
         </Card>
       </div>
+
+      {/* Dashboard Analytics */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+        {/* Sets Completed */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Trophy className="h-5 w-5 text-orange-500" />
+              Sets completed
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Trophy className="h-4 w-4" />
+                <span>Any card variant</span>
+              </div>
+              <Badge variant="secondary">{analytics?.sets_completed.any_variant || 0}</Badge>
+            </div>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Trophy className="h-4 w-4" />
+                <span>Regular card variants</span>
+              </div>
+              <Badge variant="secondary">{analytics?.sets_completed.regular_variants || 0}</Badge>
+            </div>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Trophy className="h-4 w-4" />
+                <span>All card variants</span>
+              </div>
+              <Badge variant="secondary">{analytics?.sets_completed.all_variants || 0}</Badge>
+            </div>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="text-orange-500">📦</span>
+                <span>Standard set</span>
+              </div>
+              <Badge variant="secondary">{analytics?.sets_completed.standard_set || 0}</Badge>
+            </div>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="text-blue-500">📦</span>
+                <span>Parallel set</span>
+              </div>
+              <Badge variant="secondary">{analytics?.sets_completed.parallel_set || 0}</Badge>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Quick Access */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <span className="text-orange-500">📁</span>
+              Quick access
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center justify-between cursor-pointer hover:bg-gray-50 p-2 rounded">
+              <div className="flex items-center gap-2">
+                <BarChart3 className="h-4 w-4" />
+                <span>Sets in progress</span>
+              </div>
+              <ChevronRight className="h-4 w-4" />
+            </div>
+            <div className="flex items-center justify-between cursor-pointer hover:bg-gray-50 p-2 rounded">
+              <div className="flex items-center gap-2">
+                <BarChart3 className="h-4 w-4" />
+                <span>Cards in collection</span>
+              </div>
+              <ChevronRight className="h-4 w-4" />
+            </div>
+            <div className="flex items-center justify-between cursor-pointer hover:bg-gray-50 p-2 rounded">
+              <div className="flex items-center gap-2">
+                <Heart className="h-4 w-4" />
+                <span>Cards in wishlist</span>
+              </div>
+              <ChevronRight className="h-4 w-4" />
+            </div>
+            <div className="flex items-center justify-between cursor-pointer hover:bg-gray-50 p-2 rounded">
+              <div className="flex items-center gap-2">
+                <Copy className="h-4 w-4" />
+                <span>Duplicate card variants</span>
+              </div>
+              <ChevronRight className="h-4 w-4" />
+            </div>
+            <div className="flex items-center justify-between cursor-pointer hover:bg-gray-50 p-2 rounded">
+              <div className="flex items-center gap-2">
+                <Award className="h-4 w-4" />
+                <span>Graded cards</span>
+              </div>
+              <ChevronRight className="h-4 w-4" />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Card Statistics */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+        {/* Unique cards per type */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <BarChart3 className="h-5 w-5 text-orange-500" />
+              Unique cards per type
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center justify-between">
+              <span>Pokémon</span>
+              <Badge variant="secondary">{analytics?.card_types.pokemon || 0}</Badge>
+            </div>
+            <div className="flex items-center justify-between">
+              <span>Trainer</span>
+              <Badge variant="secondary">{analytics?.card_types.trainer || 0}</Badge>
+            </div>
+            <div className="flex items-center justify-between">
+              <span>Energy</span>
+              <Badge variant="secondary">{analytics?.card_types.energy || 0}</Badge>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Unique cards per rarity */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <BarChart3 className="h-5 w-5 text-orange-500" />
+              Unique cards per rarity
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="text-black">♦</span>
+                <span>Uncommon</span>
+              </div>
+              <Badge variant="secondary">{analytics?.card_rarities.uncommon || 0}</Badge>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Recent Activity */}
+      <Card className="mb-8">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Clock className="h-5 w-5 text-orange-500" />
+            Recent activity
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {analytics?.recent_activity && analytics.recent_activity.length > 0 ? (
+            <div className="space-y-4">
+              {analytics.recent_activity.slice(0, 5).map((activity, index) => (
+                <div key={index} className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
+                  <div className="flex-shrink-0">
+                    <div className="w-2 h-2 bg-green-500 rounded-full mt-2"></div>
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm text-gray-900">{activity.message}</p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      {new Date(activity.date).toLocaleDateString()} at {new Date(activity.date).toLocaleTimeString()}
+                    </p>
+                  </div>
+                </div>
+              ))}
+              <Button variant="ghost" className="w-full mt-4">
+                <BarChart3 className="h-4 w-4 mr-2" />
+                View all activity
+              </Button>
+            </div>
+          ) : (
+            <div className="text-center py-8 text-gray-500">
+              <p>No recent activity.</p>
+              <p className="text-sm mt-2">Start adding cards to see activity here!</p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Collection and Wishlist Tabs */}
       <Tabs defaultValue="collection" className="w-full">

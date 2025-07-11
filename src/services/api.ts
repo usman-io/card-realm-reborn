@@ -1,4 +1,3 @@
-
 // API service functions
 const API_BASE_URL = 'http://localhost:8000/api';
 const POKEMON_API_BASE = 'https://api.pokemontcg.io/v2';
@@ -187,6 +186,54 @@ export const backendApi = {
     return response.ok;
   },
 
+  async addCardNote(token: string, cardData: {
+    card_id: string;
+    note: string;
+  }) {
+    const response = await fetch(`${API_BASE_URL}/notes/`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Token ${token}`,
+      },
+      body: JSON.stringify(cardData),
+    });
+    return response.json();
+  },
+
+  async getCardNotes(token: string, params: Record<string, string> = {}) {
+    const searchParams = new URLSearchParams(params);
+    const url = `${API_BASE_URL}/notes/${searchParams.toString() ? '?' + searchParams.toString() : ''}`;
+    const response = await fetch(url, {
+      headers: {
+        'Authorization': `Token ${token}`,
+      },
+    });
+    return response.json();
+  },
+
+  async updateCardNote(token: string, id: number, data: any) {
+    const response = await fetch(`${API_BASE_URL}/notes/${id}/`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Token ${token}`,
+      },
+      body: JSON.stringify(data),
+    });
+    return response.json();
+  },
+
+  async deleteCardNote(token: string, id: number) {
+    const response = await fetch(`${API_BASE_URL}/notes/${id}/`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Token ${token}`,
+      },
+    });
+    return response.ok;
+  },
+
   async getCollectionStats(token: string) {
     const response = await fetch(`${API_BASE_URL}/collection/stats/`, {
       headers: {
@@ -196,7 +243,15 @@ export const backendApi = {
     return response.json();
   },
 
-  // Subscription API calls
+  async getDashboardAnalytics(token: string) {
+    const response = await fetch(`${API_BASE_URL}/dashboard/analytics/`, {
+      headers: {
+        'Authorization': `Token ${token}`,
+      },
+    });
+    return response.json();
+  },
+
   async getSubscription(token: string) {
     const response = await fetch(`${API_BASE_URL}/subscription/`, {
       headers: {

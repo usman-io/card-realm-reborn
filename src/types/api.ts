@@ -1,4 +1,3 @@
-
 // API types for Pokemon TCG and our backend
 export interface PokemonCard {
   id: string;
@@ -114,10 +113,64 @@ export interface Wishlist {
   notes: string;
 }
 
+export interface CardNote {
+  id: number;
+  user: number;
+  card_id: string;
+  note: string;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface CollectionStats {
   total_cards: number;
   unique_cards: number;
   wishlist_count: number;
+}
+
+export interface DashboardAnalytics {
+  total_cards: number;
+  unique_cards: number;
+  wishlist_count: number;
+  graded_cards: number;
+  estimated_value: number;
+  completion_rate: number;
+  sets_completed: {
+    any_variant: number;
+    regular_variants: number;
+    all_variants: number;
+    standard_set: number;
+    parallel_set: number;
+  };
+  card_types: {
+    pokemon: number;
+    trainer: number;
+    energy: number;
+  };
+  card_rarities: {
+    common: number;
+    uncommon: number;
+    rare: number;
+    ultra_rare: number;
+  };
+  quick_access: {
+    sets_in_progress: number;
+    cards_in_collection: number;
+    cards_in_wishlist: number;
+    duplicate_variants: number;
+    graded_cards: number;
+  };
+  recent_activity: Array<{
+    type: string;
+    card_id: string;
+    date: string;
+    message: string;
+    quantity?: number;
+    variant?: string;
+    language?: string;
+    condition?: string;
+    priority?: string;
+  }>;
 }
 
 export interface Subscription {
