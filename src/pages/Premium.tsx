@@ -77,7 +77,13 @@ const Premium = () => {
     }
 
     try {
-      await createCheckoutSession(plan);
+      const data = await createCheckoutSession(plan);
+      if (data.url) {
+        // Redirect to Stripe checkout
+        window.location.href = data.url;
+      } else {
+        toast.error('Failed to get checkout URL');
+      }
     } catch (error) {
       toast.error('Failed to start checkout process');
     }
