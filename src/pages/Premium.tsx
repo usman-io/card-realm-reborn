@@ -1,5 +1,4 @@
-
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -7,10 +6,30 @@ import { Check, Star, Zap, Shield, Crown, Loader2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSubscription } from '@/hooks/useSubscription';
 import { toast } from 'sonner';
+import { useSearchParams } from 'react-router-dom';
 
 const Premium = () => {
   const { isAuthenticated } = useAuth();
-  const { subscription, loading, isSubscribed, createCheckoutSession, createPortalSession } = useSubscription();
+  const { subscription, loading, isSubscribed, createCheckoutSession, createPortalSession, refreshSubscription } = useSubscription();
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // Handle success/cancel parameters from Stripe redirect
+  useEffect(() => {
+    const success = searchParams.get('success');
+    const canceled = searchParams.get('canceled');
+
+    if (success === 'true') {
+      toast.success('Payment successful! Your premium subscription is now active.');
+      // Refresh subscription status after successful payment
+      refreshSubscription();
+      // Clean up URL parameters
+      setSearchParams({});
+    } else if (canceled === 'true') {
+      toast.info('Payment was canceled. You can try again anytime.');
+      // Clean up URL parameters
+      setSearchParams({});
+    }
+  }, [searchParams, setSearchParams, refreshSubscription]);
 
   const features = [
     {
