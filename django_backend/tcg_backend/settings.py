@@ -77,23 +77,23 @@ REST_FRAMEWORK = {
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
-]
-
-CORS_ALLOW_CREDENTIALS = False
-
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:3000",
     "http://localhost:8000",
     "http://localhost:8080",
 ]
 
+CORS_ALLOW_CREDENTIALS = False
+
 # Pokemon TCG API
 POKEMON_API_KEY = config('POKEMON_API_KEY', default='')
 
-# Stripe settings
+# Stripe settings - Fixed configuration
 STRIPE_PUBLIC_KEY = config('STRIPE_PUBLIC_KEY', default='')
 STRIPE_SECRET_KEY = config('STRIPE_SECRET_KEY', default='')
 STRIPE_WEBHOOK_SECRET = config('STRIPE_WEBHOOK_SECRET', default='')
+
+# Add validation to ensure Stripe keys are set
+if not STRIPE_SECRET_KEY:
+    print("WARNING: STRIPE_SECRET_KEY is not set in environment variables")
 
 LANGUAGE_CODE = 'en-us'
 TIME_ZONE = 'UTC'

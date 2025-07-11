@@ -13,6 +13,10 @@ from .serializers import SubscriptionSerializer
 import json
 from datetime import datetime
 
+# Validate Stripe configuration on import
+if not settings.STRIPE_SECRET_KEY:
+    raise ValueError("STRIPE_SECRET_KEY is not configured in settings")
+
 stripe.api_key = settings.STRIPE_SECRET_KEY
 
 class SubscriptionDetailView(generics.RetrieveAPIView):
@@ -38,6 +42,10 @@ class SubscriptionDetailView(generics.RetrieveAPIView):
 @permission_classes([permissions.IsAuthenticated])
 def create_checkout_session(request):
     try:
+        # Validate Stripe configuration
+        if not settings.STRIPE_SECRET_KEY:
+            return Response({'error': 'Stripe is not configured'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
         plan = request.data.get('plan', 'monthly')
         
         # Price configuration
@@ -72,44 +80,64 @@ def create_checkout_session(request):
             return Response({'error': 'Invalid plan'}, status=status.HTTP_400_BAD_REQUEST)
         
         # Check if customer already exists
+        customer_id = None
         try:
             subscription_obj = Subscription.objects.get(user=request.user)
             customer_id = subscription_obj.stripe_customer_id
+            print(f"Found existing customer: {customer_id}")
         except Subscription.DoesNotExist:
-            # Create new customer
-            customer = stripe.Customer.create(
-                email=request.user.email,
+            print("No existing subscription found, will create new customer")
+        
+        # Create new customer if needed
+        if not customer_id:
+            try:
+                print(f"Creating new Stripe customer for email: {request.user.email}")
+                customer = stripe.Customer.create(
+                    email=request.user.email,
+                    metadata={
+                        'user_id': request.user.id,
+                    }
+                )
+                customer_id = customer.id
+                print(f"Created new customer: {customer_id}")
+            except stripe.error.StripeError as e:
+                print(f"Stripe error creating customer: {e}")
+                return Response({'error': f'Error creating Stripe customer: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+        try:
+            checkout_session = stripe.checkout.Session.create(
+                customer=customer_id,
+                payment_method_types=['card'],
+                line_items=[{
+                    'price_data': prices[plan]['price_data'],
+                    'quantity': 1,
+                }],
+                mode='subscription',
+                success_url=request.build_absolute_uri('/premium?success=true'),
+                cancel_url=request.build_absolute_uri('/premium?canceled=true'),
                 metadata={
                     'user_id': request.user.id,
+                    'plan': plan,
                 }
             )
-            customer_id = customer.id
-        
-        checkout_session = stripe.checkout.Session.create(
-            customer=customer_id,
-            payment_method_types=['card'],
-            line_items=[{
-                'price_data': prices[plan]['price_data'],
-                'quantity': 1,
-            }],
-            mode='subscription',
-            success_url=request.build_absolute_uri('/premium?success=true'),
-            cancel_url=request.build_absolute_uri('/premium?canceled=true'),
-            metadata={
-                'user_id': request.user.id,
-                'plan': plan,
-            }
-        )
-        
-        return Response({'url': checkout_session.url})
+            
+            return Response({'url': checkout_session.url})
+            
+        except stripe.error.StripeError as e:
+            print(f"Stripe error creating checkout session: {e}")
+            return Response({'error': f'Error creating checkout session: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
     except Exception as e:
+        print(f"Unexpected error in create_checkout_session: {e}")
         return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @api_view(['POST'])
 @permission_classes([permissions.IsAuthenticated])
 def create_portal_session(request):
     try:
+        if not settings.STRIPE_SECRET_KEY:
+            return Response({'error': 'Stripe is not configured'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            
         subscription_obj = Subscription.objects.get(user=request.user)
         customer_id = subscription_obj.stripe_customer_id
         
@@ -122,12 +150,17 @@ def create_portal_session(request):
         
     except Subscription.DoesNotExist:
         return Response({'error': 'No subscription found'}, status=status.HTTP_404_NOT_FOUND)
+    except stripe.error.StripeError as e:
+        return Response({'error': f'Stripe error: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     except Exception as e:
         return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @csrf_exempt
 @require_http_methods(["POST"])
 def stripe_webhook(request):
+    if not settings.STRIPE_WEBHOOK_SECRET:
+        return JsonResponse({'error': 'Webhook secret not configured'}, status=400)
+        
     payload = request.body
     sig_header = request.META.get('HTTP_STRIPE_SIGNATURE')
     
