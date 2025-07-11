@@ -95,6 +95,10 @@ const AddToCollectionDialog = ({ open, onOpenChange, card }: AddToCollectionDial
     setQuantity(Math.max(1, quantity + delta));
   };
 
+  const handleAddAnotherChange = (checked: boolean | "indeterminate") => {
+    setAddAnother(checked === true);
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px]">
@@ -220,7 +224,7 @@ const AddToCollectionDialog = ({ open, onOpenChange, card }: AddToCollectionDial
             <Checkbox
               id="addAnother"
               checked={addAnother}
-              onCheckedChange={setAddAnother}
+              onCheckedChange={handleAddAnotherChange}
             />
             <Label htmlFor="addAnother">Add another card after this</Label>
           </div>
