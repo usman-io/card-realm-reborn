@@ -5,6 +5,7 @@ from rest_framework.decorators import api_view, permission_classes
 from django.db import IntegrityError
 from .models import Collection, Wishlist
 from .serializers import CollectionSerializer, WishlistSerializer
+from django.db.models import Sum
 
 class CollectionListCreateView(generics.ListCreateAPIView):
     serializer_class = CollectionSerializer
@@ -67,11 +68,19 @@ class WishlistListCreateView(generics.ListCreateAPIView):
             queryset = queryset.filter(priority=priority)
         
         # Order by priority (urgent first) then by most recent
-        priority_order = ['urgent', 'high', 'medium', 'low']
-        return queryset.order_by(
-            *[f"priority='{p}'" for p in priority_order], 
-            '-added_date'
+        from django.db.models import Case, When, Value, IntegerField
+        
+        # Create a custom order for priority
+        priority_order = Case(
+            When(priority='urgent', then=Value(0)),
+            When(priority='high', then=Value(1)),
+            When(priority='medium', then=Value(2)),
+            When(priority='low', then=Value(3)),
+            default=Value(4),
+            output_field=IntegerField(),
         )
+        
+        return queryset.order_by(priority_order, '-added_date')
 
     def perform_create(self, serializer):
         try:
@@ -94,7 +103,7 @@ class WishlistDetailView(generics.RetrieveUpdateDestroyAPIView):
 def collection_stats(request):
     """Get collection statistics for the user"""
     total_cards = Collection.objects.filter(user=request.user).aggregate(
-        total_quantity=models.Sum('quantity')
+        total_quantity=Sum('quantity')
     )['total_quantity'] or 0
     
     unique_cards = Collection.objects.filter(user=request.user).count()
