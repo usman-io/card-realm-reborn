@@ -14,6 +14,9 @@ import json
 from datetime import datetime
 
 stripe.api_key = settings.STRIPE_SECRET_KEY
+print(stripe.api_key)
+print(settings.STRIPE_SECRET_KEY)
+
 
 class SubscriptionDetailView(generics.RetrieveAPIView):
     serializer_class = SubscriptionSerializer
@@ -77,13 +80,14 @@ def create_checkout_session(request):
             customer_id = subscription_obj.stripe_customer_id
         except Subscription.DoesNotExist:
             # Create new customer
-            customer = stripe.Customer.create(
-                email=request.user.email,
-                metadata={
-                    'user_id': request.user.id,
-                }
-            )
-            customer_id = customer.id
+            try:
+                customer = stripe.Customer.create(
+                    email=request.user.email
+                )
+                customer_id = customer.id
+            except Exception as e:
+                print(f"Error creating Stripe customer: {e}")
+                # return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
         checkout_session = stripe.checkout.Session.create(
             customer=customer_id,
