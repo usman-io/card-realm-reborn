@@ -208,6 +208,11 @@ def handle_checkout_session_completed(session):
         print(f"Error handling checkout session: {e}")
 
 def handle_payment_succeeded(invoice):
+    # Check if this invoice is related to a subscription
+    if 'subscription' not in invoice or not invoice['subscription']:
+        print(f"Invoice {invoice['id']} is not related to a subscription, skipping")
+        return
+    
     subscription_id = invoice['subscription']
     
     try:
@@ -217,6 +222,8 @@ def handle_payment_succeeded(invoice):
         print(f"Updated subscription status to active for {subscription_obj.user.email}")
     except Subscription.DoesNotExist:
         print(f"Subscription not found for stripe_subscription_id: {subscription_id}")
+    except Exception as e:
+        print(f"Error handling payment succeeded: {e}")
 
 def handle_subscription_updated(subscription):
     subscription_id = subscription['id']
@@ -230,6 +237,8 @@ def handle_subscription_updated(subscription):
         print(f"Updated subscription for {subscription_obj.user.email}")
     except Subscription.DoesNotExist:
         print(f"Subscription not found for stripe_subscription_id: {subscription_id}")
+    except Exception as e:
+        print(f"Error handling subscription updated: {e}")
 
 def handle_subscription_deleted(subscription):
     subscription_id = subscription['id']
@@ -241,3 +250,5 @@ def handle_subscription_deleted(subscription):
         print(f"Canceled subscription for {subscription_obj.user.email}")
     except Subscription.DoesNotExist:
         print(f"Subscription not found for stripe_subscription_id: {subscription_id}")
+    except Exception as e:
+        print(f"Error handling subscription deleted: {e}")
