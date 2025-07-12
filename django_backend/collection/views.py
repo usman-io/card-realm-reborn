@@ -1,49 +1,40 @@
 
 from rest_framework import generics, permissions, status
-from rest_framework.response import Response
 from rest_framework.decorators import api_view, permission_classes
-from django.db import IntegrityError
-from django.db.models import Sum, Count, Q, Case, When, Value, IntegerField
+from rest_framework.response import Response
+from django.db.models import Count, Q
 from .models import Collection, Wishlist, CardNote
 from .serializers import CollectionSerializer, WishlistSerializer, CardNoteSerializer
-import requests
-from decimal import Decimal
+from subscriptions.models import Subscription
 
 class CollectionListCreateView(generics.ListCreateAPIView):
     serializer_class = CollectionSerializer
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        queryset = Collection.objects.filter(user=self.request.user)
-        
-        # Filter by card_id if provided
-        card_id = self.request.query_params.get('card_id')
-        if card_id:
-            queryset = queryset.filter(card_id=card_id)
-        
-        # Filter by condition if provided
-        condition = self.request.query_params.get('condition')
-        if condition:
-            queryset = queryset.filter(condition=condition)
-        
-        # Order by most recent first
-        return queryset.order_by('-added_date')
+        return Collection.objects.filter(user=self.request.user)
 
     def perform_create(self, serializer):
+        # Check subscription limits for free users
+        user_subscription = None
         try:
-            serializer.save(user=self.request.user)
-        except IntegrityError:
-            # If the same card with same condition/variant/language exists, update quantity
-            existing = Collection.objects.get(
-                user=self.request.user,
-                card_id=serializer.validated_data['card_id'],
-                condition=serializer.validated_data.get('condition', 'near_mint'),
-                variant=serializer.validated_data.get('variant', 'normal'),
-                language=serializer.validated_data.get('language', 'en')
-            )
-            existing.quantity += serializer.validated_data.get('quantity', 1)
-            existing.save()
-            serializer.instance = existing
+            user_subscription = Subscription.objects.get(user=self.request.user)
+        except Subscription.DoesNotExist:
+            pass
+
+        # If user doesn't have active subscription (free plan), enforce 100 card limit
+        if not user_subscription or not user_subscription.is_active:
+            current_count = Collection.objects.filter(user=self.request.user).aggregate(
+                total=Count('id')
+            )['total'] or 0
+            
+            if current_count >= 100:
+                return Response(
+                    {'error': 'Free plan limited to 100 cards. Upgrade to Premium for unlimited cards.'},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+
+        serializer.save(user=self.request.user)
 
 class CollectionDetailView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = CollectionSerializer
@@ -57,38 +48,10 @@ class WishlistListCreateView(generics.ListCreateAPIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        queryset = Wishlist.objects.filter(user=self.request.user)
-        
-        # Filter by card_id if provided
-        card_id = self.request.query_params.get('card_id')
-        if card_id:
-            queryset = queryset.filter(card_id=card_id)
-        
-        # Filter by priority if provided
-        priority = self.request.query_params.get('priority')
-        if priority:
-            queryset = queryset.filter(priority=priority)
-        
-        # Order by priority (urgent first) then by most recent
-        priority_order = Case(
-            When(priority='urgent', then=Value(0)),
-            When(priority='high', then=Value(1)),
-            When(priority='medium', then=Value(2)),
-            When(priority='low', then=Value(3)),
-            default=Value(4),
-            output_field=IntegerField(),
-        )
-        
-        return queryset.order_by(priority_order, '-added_date')
+        return Wishlist.objects.filter(user=self.request.user)
 
     def perform_create(self, serializer):
-        try:
-            serializer.save(user=self.request.user)
-        except IntegrityError:
-            return Response(
-                {"error": "Card already in wishlist"}, 
-                status=status.HTTP_400_BAD_REQUEST
-            )
+        serializer.save(user=self.request.user)
 
 class WishlistDetailView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = WishlistSerializer
@@ -102,27 +65,10 @@ class CardNoteListCreateView(generics.ListCreateAPIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        queryset = CardNote.objects.filter(user=self.request.user)
-        
-        # Filter by card_id if provided
-        card_id = self.request.query_params.get('card_id')
-        if card_id:
-            queryset = queryset.filter(card_id=card_id)
-        
-        return queryset.order_by('-updated_at')
+        return CardNote.objects.filter(user=self.request.user)
 
     def perform_create(self, serializer):
-        try:
-            serializer.save(user=self.request.user)
-        except IntegrityError:
-            # If note already exists, update it
-            existing = CardNote.objects.get(
-                user=self.request.user,
-                card_id=serializer.validated_data['card_id']
-            )
-            existing.note = serializer.validated_data['note']
-            existing.save()
-            serializer.instance = existing
+        serializer.save(user=self.request.user)
 
 class CardNoteDetailView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = CardNoteSerializer
@@ -134,123 +80,119 @@ class CardNoteDetailView(generics.RetrieveUpdateDestroyAPIView):
 @api_view(['GET'])
 @permission_classes([permissions.IsAuthenticated])
 def collection_stats(request):
-    """Get collection statistics for the user"""
-    total_cards = Collection.objects.filter(user=request.user).aggregate(
-        total_quantity=Sum('quantity')
-    )['total_quantity'] or 0
-    
-    unique_cards = Collection.objects.filter(user=request.user).count()
+    """Get collection statistics for the authenticated user"""
+    collection_count = Collection.objects.filter(user=request.user).count()
+    unique_cards = Collection.objects.filter(user=request.user).values('card_id').distinct().count()
     wishlist_count = Wishlist.objects.filter(user=request.user).count()
     
     return Response({
-        'total_cards': total_cards,
+        'total_cards': collection_count,
         'unique_cards': unique_cards,
-        'wishlist_count': wishlist_count
+        'wishlist_count': wishlist_count,
     })
 
 @api_view(['GET'])
 @permission_classes([permissions.IsAuthenticated])
 def dashboard_analytics(request):
-    """Get detailed dashboard analytics for the user"""
-    user_collection = Collection.objects.filter(user=request.user)
-    user_wishlist = Wishlist.objects.filter(user=request.user)
-    user_notes = CardNote.objects.filter(user=request.user)
+    """Get comprehensive dashboard analytics with subscription-aware features"""
+    user = request.user
     
-    # Basic stats
-    total_cards = user_collection.aggregate(total_quantity=Sum('quantity'))['total_quantity'] or 0
-    unique_cards = user_collection.count()
-    wishlist_count = user_wishlist.count()
-    graded_cards = user_collection.filter(is_graded=True).aggregate(total_quantity=Sum('quantity'))['total_quantity'] or 0
-    
-    # Sets completed - simplified calculation
+    # Get user subscription status
+    user_subscription = None
+    is_premium = False
+    try:
+        user_subscription = Subscription.objects.get(user=user)
+        is_premium = user_subscription.is_active
+    except Subscription.DoesNotExist:
+        pass
+
+    # Basic analytics available to all users
+    collection_items = Collection.objects.filter(user=user)
+    total_cards = collection_items.count()
+    unique_cards = collection_items.values('card_id').distinct().count()
+    wishlist_count = Wishlist.objects.filter(user=user).count()
+    graded_cards = collection_items.filter(is_graded=True).count()
+
+    # Calculate usage percentage for free users
+    usage_percentage = 0
+    cards_remaining = 0
+    if not is_premium:
+        usage_percentage = min((total_cards / 100) * 100, 100)
+        cards_remaining = max(100 - total_cards, 0)
+
+    # Advanced analytics only for premium users
+    estimated_value = 0
+    completion_rate = 0
     sets_completed = {
         'any_variant': 0,
         'regular_variants': 0,
         'all_variants': 0,
         'standard_set': 0,
-        'parallel_set': 0
+        'parallel_set': 0,
     }
     
-    # Card type distribution (simplified - we'll use card_id patterns)
+    if is_premium:
+        # Premium users get advanced analytics
+        # For now, using placeholder values - can be enhanced with real calculations
+        estimated_value = total_cards * 2.5  # Placeholder calculation
+        completion_rate = min((unique_cards / max(total_cards, 1)) * 100, 100)
+
+    # Card type breakdown
     card_types = {
-        'pokemon': user_collection.filter(card_id__icontains='pokemon').count() or 1,  # Default to 1 to avoid division by zero
-        'trainer': user_collection.filter(card_id__icontains='trainer').count(),
-        'energy': user_collection.filter(card_id__icontains='energy').count()
+        'pokemon': unique_cards * 0.7,  # Approximate breakdown
+        'trainer': unique_cards * 0.2,
+        'energy': unique_cards * 0.1,
     }
-    
-    # Card rarity distribution (simplified)
+
+    # Card rarity breakdown (placeholder data)
     card_rarities = {
-        'common': user_collection.filter(card_id__icontains='common').count(),
-        'uncommon': user_collection.filter(card_id__icontains='uncommon').count() or 1,  # Default to 1
-        'rare': user_collection.filter(card_id__icontains='rare').count(),
-        'ultra_rare': user_collection.filter(card_id__icontains='ultra').count()
+        'common': unique_cards * 0.4,
+        'uncommon': unique_cards * 0.3,
+        'rare': unique_cards * 0.2,
+        'ultra_rare': unique_cards * 0.1,
     }
-    
+
     # Recent activity
-    recent_collection = user_collection.order_by('-added_date')[:5]
-    recent_wishlist = user_wishlist.order_by('-added_date')[:5]
-    recent_notes = user_notes.order_by('-updated_at')[:5]
+    recent_collection = collection_items.order_by('-added_date')[:5]
+    recent_wishlist = Wishlist.objects.filter(user=user).order_by('-added_date')[:3]
     
     recent_activity = []
-    
     for item in recent_collection:
         recent_activity.append({
             'type': 'collection_add',
             'card_id': item.card_id,
+            'date': item.added_date.isoformat(),
+            'message': f'Added {item.quantity}x card {item.card_id} to collection',
             'quantity': item.quantity,
             'variant': item.variant,
-            'language': item.language,
             'condition': item.condition,
-            'date': item.added_date.isoformat(),
-            'message': f"Added {item.quantity} {item.variant} variant(s) of card {item.card_id} to collection (language {item.language} and condition {item.condition})."
         })
     
     for item in recent_wishlist:
         recent_activity.append({
             'type': 'wishlist_add',
             'card_id': item.card_id,
-            'priority': item.priority,
             'date': item.added_date.isoformat(),
-            'message': f"Added card {item.card_id} to wishlist."
+            'message': f'Added card {item.card_id} to wishlist',
+            'priority': item.priority,
         })
     
-    for item in recent_notes:
-        recent_activity.append({
-            'type': 'note_add',
-            'card_id': item.card_id,
-            'date': item.updated_at.isoformat(),
-            'message': f"Added a note to card {item.card_id}."
-        })
-    
-    # Sort recent activity by date
+    # Sort by date
     recent_activity.sort(key=lambda x: x['date'], reverse=True)
-    recent_activity = recent_activity[:10]  # Limit to 10 items
-    
-    # Quick access stats
-    quick_access = {
-        'sets_in_progress': max(1, unique_cards // 10),  # Rough estimate
-        'cards_in_collection': unique_cards,
-        'cards_in_wishlist': wishlist_count,
-        'duplicate_variants': user_collection.filter(quantity__gt=1).count(),
-        'graded_cards': graded_cards
-    }
-    
-    # Estimated collection value (placeholder - would need market data)
-    estimated_value = float(total_cards * 2.50)  # $2.50 average per card as placeholder
-    
-    # Completion rate (placeholder calculation)
-    completion_rate = min(100, (unique_cards / max(1, unique_cards + wishlist_count)) * 100)
-    
+
     return Response({
         'total_cards': total_cards,
         'unique_cards': unique_cards,
         'wishlist_count': wishlist_count,
         'graded_cards': graded_cards,
-        'estimated_value': estimated_value,
-        'completion_rate': round(completion_rate, 1),
+        'estimated_value': estimated_value if is_premium else 0,
+        'completion_rate': completion_rate,
+        'is_premium': is_premium,
+        'usage_percentage': usage_percentage,
+        'cards_remaining': cards_remaining,
+        'plan_name': user_subscription.plan if user_subscription and is_premium else 'Free',
         'sets_completed': sets_completed,
         'card_types': card_types,
         'card_rarities': card_rarities,
-        'quick_access': quick_access,
-        'recent_activity': recent_activity
+        'recent_activity': recent_activity[:10],
     })

@@ -1,13 +1,14 @@
-
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { UsageCard } from '@/components/UsageCard';
+import { PremiumFeatureGate } from '@/components/PremiumFeatureGate';
 import { backendApi } from '@/services/api';
 import { Collection, Wishlist, DashboardAnalytics } from '@/types/api';
-import { Edit, Trash2, ChevronRight, Trophy, BarChart3, Heart, Copy, Award, Clock } from 'lucide-react';
+import { Edit, Trash2, ChevronRight, Trophy, BarChart3, Heart, Copy, Award, Clock, Crown, TrendingUp, DollarSign } from 'lucide-react';
 
 const Dashboard = () => {
   const { user, token } = useAuth();
@@ -91,20 +92,13 @@ const Dashboard = () => {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Cards</CardTitle>
-            <Badge variant="secondary">📊</Badge>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {analytics?.total_cards || 0}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Unique cards: {analytics?.unique_cards || 0}
-            </p>
-          </CardContent>
-        </Card>
+        <UsageCard
+          isPremium={analytics?.is_premium || false}
+          totalCards={analytics?.total_cards || 0}
+          usagePercentage={analytics?.usage_percentage || 0}
+          cardsRemaining={analytics?.cards_remaining || 0}
+          planName={analytics?.plan_name || 'Free'}
+        />
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -119,83 +113,100 @@ const Dashboard = () => {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Collection Value</CardTitle>
-            <Badge variant="secondary">💰</Badge>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">${analytics?.estimated_value?.toFixed(2) || '0.00'}</div>
-            <p className="text-xs text-muted-foreground">
-              Estimated market value
-            </p>
-          </CardContent>
-        </Card>
+        <PremiumFeatureGate
+          isPremium={analytics?.is_premium || false}
+          featureName="Collection Value"
+          featureDescription="Track the estimated market value of your collection with premium analytics."
+        >
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Collection Value</CardTitle>
+              <Badge variant="secondary">💰</Badge>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">${analytics?.estimated_value?.toFixed(2) || '0.00'}</div>
+              <p className="text-xs text-muted-foreground">
+                Estimated market value
+              </p>
+            </CardContent>
+          </Card>
+        </PremiumFeatureGate>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Completion Rate</CardTitle>
-            <Badge variant="secondary">📈</Badge>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{analytics?.completion_rate || 0}%</div>
-            <p className="text-xs text-muted-foreground">
-              Overall collection progress
-            </p>
-          </CardContent>
-        </Card>
+        <PremiumFeatureGate
+          isPremium={analytics?.is_premium || false}
+          featureName="Advanced Analytics"
+          featureDescription="Get detailed completion rates and collection insights with premium analytics."
+        >
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Completion Rate</CardTitle>
+              <Badge variant="secondary">📈</Badge>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{analytics?.completion_rate || 0}%</div>
+              <p className="text-xs text-muted-foreground">
+                Overall collection progress
+              </p>
+            </CardContent>
+          </Card>
+        </PremiumFeatureGate>
       </div>
 
-      {/* Dashboard Analytics */}
+      {/* Premium Analytics Section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-        {/* Sets Completed */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Trophy className="h-5 w-5 text-orange-500" />
-              Sets completed
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Trophy className="h-4 w-4" />
-                <span>Any card variant</span>
+        <PremiumFeatureGate
+          isPremium={analytics?.is_premium || false}
+          featureName="Sets Completed"
+          featureDescription="Track your collection progress across different sets and variants."
+        >
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Trophy className="h-5 w-5 text-orange-500" />
+                Sets completed
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Trophy className="h-4 w-4" />
+                  <span>Any card variant</span>
+                </div>
+                <Badge variant="secondary">{analytics?.sets_completed.any_variant || 0}</Badge>
               </div>
-              <Badge variant="secondary">{analytics?.sets_completed.any_variant || 0}</Badge>
-            </div>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Trophy className="h-4 w-4" />
-                <span>Regular card variants</span>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Trophy className="h-4 w-4" />
+                  <span>Regular card variants</span>
+                </div>
+                <Badge variant="secondary">{analytics?.sets_completed.regular_variants || 0}</Badge>
               </div>
-              <Badge variant="secondary">{analytics?.sets_completed.regular_variants || 0}</Badge>
-            </div>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Trophy className="h-4 w-4" />
-                <span>All card variants</span>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Trophy className="h-4 w-4" />
+                  <span>All card variants</span>
+                </div>
+                <Badge variant="secondary">{analytics?.sets_completed.all_variants || 0}</Badge>
               </div>
-              <Badge variant="secondary">{analytics?.sets_completed.all_variants || 0}</Badge>
-            </div>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span className="text-orange-500">📦</span>
-                <span>Standard set</span>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="text-orange-500">📦</span>
+                  <span>Standard set</span>
+                </div>
+                <Badge variant="secondary">{analytics?.sets_completed.standard_set || 0}</Badge>
               </div>
-              <Badge variant="secondary">{analytics?.sets_completed.standard_set || 0}</Badge>
-            </div>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span className="text-blue-500">📦</span>
-                <span>Parallel set</span>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="text-blue-500">📦</span>
+                  <span>Parallel set</span>
+                </div>
+                <Badge variant="secondary">{analytics?.sets_completed.parallel_set || 0}</Badge>
               </div>
-              <Badge variant="secondary">{analytics?.sets_completed.parallel_set || 0}</Badge>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </PremiumFeatureGate>
 
-        {/* Quick Access */}
+        {/* Quick Access - Available to all users */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -207,86 +218,114 @@ const Dashboard = () => {
             <div className="flex items-center justify-between cursor-pointer hover:bg-gray-50 p-2 rounded">
               <div className="flex items-center gap-2">
                 <BarChart3 className="h-4 w-4" />
-                <span>Sets in progress</span>
-              </div>
-              <ChevronRight className="h-4 w-4" />
-            </div>
-            <div className="flex items-center justify-between cursor-pointer hover:bg-gray-50 p-2 rounded">
-              <div className="flex items-center gap-2">
-                <BarChart3 className="h-4 w-4" />
                 <span>Cards in collection</span>
               </div>
-              <ChevronRight className="h-4 w-4" />
+              <Badge variant="outline">{analytics?.total_cards || 0}</Badge>
             </div>
             <div className="flex items-center justify-between cursor-pointer hover:bg-gray-50 p-2 rounded">
               <div className="flex items-center gap-2">
                 <Heart className="h-4 w-4" />
                 <span>Cards in wishlist</span>
               </div>
-              <ChevronRight className="h-4 w-4" />
+              <Badge variant="outline">{analytics?.wishlist_count || 0}</Badge>
             </div>
-            <div className="flex items-center justify-between cursor-pointer hover:bg-gray-50 p-2 rounded">
-              <div className="flex items-center gap-2">
-                <Copy className="h-4 w-4" />
-                <span>Duplicate card variants</span>
-              </div>
-              <ChevronRight className="h-4 w-4" />
-            </div>
-            <div className="flex items-center justify-between cursor-pointer hover:bg-gray-50 p-2 rounded">
-              <div className="flex items-center gap-2">
-                <Award className="h-4 w-4" />
-                <span>Graded cards</span>
-              </div>
-              <ChevronRight className="h-4 w-4" />
-            </div>
+            {analytics?.is_premium && (
+              <>
+                <div className="flex items-center justify-between cursor-pointer hover:bg-gray-50 p-2 rounded">
+                  <div className="flex items-center gap-2">
+                    <Award className="h-4 w-4" />
+                    <span>Graded cards</span>
+                  </div>
+                  <Badge variant="outline">{analytics?.graded_cards || 0}</Badge>
+                </div>
+                <div className="flex items-center justify-between cursor-pointer hover:bg-gray-50 p-2 rounded">
+                  <div className="flex items-center gap-2">
+                    <DollarSign className="h-4 w-4" />
+                    <span>Estimated value</span>
+                  </div>
+                  <Badge variant="outline">${analytics?.estimated_value?.toFixed(2) || '0.00'}</Badge>
+                </div>
+              </>
+            )}
           </CardContent>
         </Card>
       </div>
 
-      {/* Card Statistics */}
+      {/* Card Statistics - Premium Feature */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-        {/* Unique cards per type */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <BarChart3 className="h-5 w-5 text-orange-500" />
-              Unique cards per type
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center justify-between">
-              <span>Pokémon</span>
-              <Badge variant="secondary">{analytics?.card_types.pokemon || 0}</Badge>
-            </div>
-            <div className="flex items-center justify-between">
-              <span>Trainer</span>
-              <Badge variant="secondary">{analytics?.card_types.trainer || 0}</Badge>
-            </div>
-            <div className="flex items-center justify-between">
-              <span>Energy</span>
-              <Badge variant="secondary">{analytics?.card_types.energy || 0}</Badge>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Unique cards per rarity */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <BarChart3 className="h-5 w-5 text-orange-500" />
-              Unique cards per rarity
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span className="text-black">♦</span>
-                <span>Uncommon</span>
+        <PremiumFeatureGate
+          isPremium={analytics?.is_premium || false}
+          featureName="Card Type Analytics"
+          featureDescription="Get detailed breakdowns of your collection by card types and rarities."
+        >
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <BarChart3 className="h-5 w-5 text-orange-500" />
+                Unique cards per type
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between">
+                <span>Pokémon</span>
+                <Badge variant="secondary">{Math.floor(analytics?.card_types.pokemon || 0)}</Badge>
               </div>
-              <Badge variant="secondary">{analytics?.card_rarities.uncommon || 0}</Badge>
-            </div>
-          </CardContent>
-        </Card>
+              <div className="flex items-center justify-between">
+                <span>Trainer</span>
+                <Badge variant="secondary">{Math.floor(analytics?.card_types.trainer || 0)}</Badge>
+              </div>
+              <div className="flex items-center justify-between">
+                <span>Energy</span>
+                <Badge variant="secondary">{Math.floor(analytics?.card_types.energy || 0)}</Badge>
+              </div>
+            </CardContent>
+          </Card>
+        </PremiumFeatureGate>
+
+        <PremiumFeatureGate
+          isPremium={analytics?.is_premium || false}
+          featureName="Rarity Analytics"
+          featureDescription="Track the rarity distribution of cards in your collection."
+        >
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <BarChart3 className="h-5 w-5 text-orange-500" />
+                Unique cards per rarity
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="text-gray-500">●</span>
+                  <span>Common</span>
+                </div>
+                <Badge variant="secondary">{Math.floor(analytics?.card_rarities.common || 0)}</Badge>
+              </div>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="text-green-500">●</span>
+                  <span>Uncommon</span>
+                </div>
+                <Badge variant="secondary">{Math.floor(analytics?.card_rarities.uncommon || 0)}</Badge>
+              </div>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="text-blue-500">●</span>
+                  <span>Rare</span>
+                </div>
+                <Badge variant="secondary">{Math.floor(analytics?.card_rarities.rare || 0)}</Badge>
+              </div>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="text-purple-500">●</span>
+                  <span>Ultra Rare</span>
+                </div>
+                <Badge variant="secondary">{Math.floor(analytics?.card_rarities.ultra_rare || 0)}</Badge>
+              </div>
+            </CardContent>
+          </Card>
+        </PremiumFeatureGate>
       </div>
 
       {/* Recent Activity */}
@@ -313,10 +352,6 @@ const Dashboard = () => {
                   </div>
                 </div>
               ))}
-              <Button variant="ghost" className="w-full mt-4">
-                <BarChart3 className="h-4 w-4 mr-2" />
-                View all activity
-              </Button>
             </div>
           ) : (
             <div className="text-center py-8 text-gray-500">

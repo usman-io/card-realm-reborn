@@ -135,6 +135,10 @@ export interface DashboardAnalytics {
   graded_cards: number;
   estimated_value: number;
   completion_rate: number;
+  is_premium: boolean;
+  usage_percentage: number;
+  cards_remaining: number;
+  plan_name: string;
   sets_completed: {
     any_variant: number;
     regular_variants: number;
@@ -152,13 +156,6 @@ export interface DashboardAnalytics {
     uncommon: number;
     rare: number;
     ultra_rare: number;
-  };
-  quick_access: {
-    sets_in_progress: number;
-    cards_in_collection: number;
-    cards_in_wishlist: number;
-    duplicate_variants: number;
-    graded_cards: number;
   };
   recent_activity: Array<{
     type: string;

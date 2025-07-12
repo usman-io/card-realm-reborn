@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { backendApi } from '@/services/api';
 import { Subscription } from '@/types/api';
+import { toast } from 'sonner';
 
 export const useSubscription = () => {
   const { token, isAuthenticated } = useAuth();
@@ -36,10 +37,12 @@ export const useSubscription = () => {
     try {
       const data = await backendApi.createCheckoutSession(token, plan);
       if (data.url) {
-        window.open(data.url, '_blank');
+        // Redirect to Stripe checkout
+        window.location.href = data.url;
       }
       return data;
     } catch (err) {
+      toast.error('Failed to create checkout session');
       throw new Error('Failed to create checkout session');
     }
   };
@@ -54,6 +57,7 @@ export const useSubscription = () => {
       }
       return data;
     } catch (err) {
+      toast.error('Failed to create portal session');
       throw new Error('Failed to create portal session');
     }
   };
