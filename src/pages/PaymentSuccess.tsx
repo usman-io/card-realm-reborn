@@ -49,7 +49,7 @@ const PaymentSuccess = () => {
                 onClick={() => navigate('/premium')} 
                 className="w-full"
               >
-                Done
+                View Premium Features
                 <ArrowRight className="w-4 h-4 ml-2" />
               </Button>
               

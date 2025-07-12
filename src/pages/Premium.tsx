@@ -114,14 +114,16 @@ const Premium = () => {
   };
 
   const handleCancelSubscription = async () => {
-    if (!window.confirm('Are you sure you want to cancel your subscription? You will lose access to premium features.')) {
+    if (!window.confirm('Are you sure you want to cancel your subscription? You will lose access to premium features at the end of your billing period.')) {
       return;
     }
 
     try {
       await cancelSubscription();
+      toast.success('Subscription canceled successfully. You will retain access until the end of your billing period.');
+      await refreshSubscription();
     } catch (error) {
-      // Error handling is done in the hook
+      toast.error('Failed to cancel subscription');
     }
   };
 
@@ -174,100 +176,124 @@ const Premium = () => {
         ))}
       </div>
 
-      {/* Pricing Plans */}
-      <div className="mb-16">
-        <h2 className="text-3xl font-bold text-center text-gray-900 mb-12">
-          Choose Your Plan
-        </h2>
-        <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-          {plans.map((plan, index) => (
-            <Card key={index} className={`relative ${plan.popular ? 'border-blue-500 shadow-lg' : ''} ${plan.current ? 'border-green-500' : ''}`}>
-              {plan.popular && (
-                <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-                  <Badge className="bg-blue-600 text-white px-4 py-1">
-                    Most Popular
-                  </Badge>
-                </div>
-              )}
-              {plan.current && (
-                <div className="absolute -top-3 right-4">
-                  <Badge className="bg-green-600 text-white px-3 py-1">
-                    Current Plan
-                  </Badge>
-                </div>
-              )}
-              <CardHeader className="text-center">
-                <CardTitle className="text-2xl">{plan.name}</CardTitle>
-                <div className="mt-4">
-                  <span className="text-4xl font-bold">{plan.price}</span>
-                  <span className="text-gray-600">/{plan.period}</span>
-                </div>
-                {plan.name === 'Premium' && (
-                  <div className="mt-2 space-y-1">
-                    <div className="text-sm text-gray-600">
-                      Billed yearly: <span className="font-semibold">{plan.monthlyEquivalent}/month</span>
-                    </div>
-                    <div className="text-sm text-green-600 font-medium">
-                      {plan.yearlyPrice} in total – {plan.savings}
-                    </div>
+      {/* Current Subscription Status for Active Users */}
+      {isSubscribed && (
+        <div className="mb-16">
+          <Card className="max-w-2xl mx-auto border-green-500 bg-green-50">
+            <CardHeader className="text-center">
+              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Crown className="w-8 h-8 text-green-600" />
+              </div>
+              <CardTitle className="text-2xl text-green-600">Premium Active</CardTitle>
+              <CardDescription>
+                You're currently on the {subscription?.plan} plan
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="text-center space-y-4">
+              <div className="space-y-2">
+                <p className="text-sm text-gray-600">
+                  Enjoying all premium features including unlimited cards, advanced analytics, and priority support.
+                </p>
+              </div>
+              <Button 
+                onClick={handleCancelSubscription}
+                variant="destructive"
+                className="w-full max-w-md"
+              >
+                <X className="w-4 h-4 mr-2" />
+                Cancel Subscription
+              </Button>
+              <p className="text-xs text-gray-500">
+                You will retain access to premium features until the end of your billing period.
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Pricing Plans - Only show for non-subscribers */}
+      {!isSubscribed && (
+        <div className="mb-16">
+          <h2 className="text-3xl font-bold text-center text-gray-900 mb-12">
+            Choose Your Plan
+          </h2>
+          <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+            {plans.map((plan, index) => (
+              <Card key={index} className={`relative ${plan.popular ? 'border-blue-500 shadow-lg' : ''} ${plan.current ? 'border-green-500' : ''}`}>
+                {plan.popular && (
+                  <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
+                    <Badge className="bg-blue-600 text-white px-4 py-1">
+                      Most Popular
+                    </Badge>
                   </div>
                 )}
-                <CardDescription className="mt-2">{plan.description}</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <ul className="space-y-3 mb-6">
-                  {plan.features.map((feature, featureIndex) => (
-                    <li key={featureIndex} className="flex items-center gap-2">
-                      <Check className="w-4 h-4 text-green-500 flex-shrink-0" />
-                      <span className="text-sm">{feature}</span>
-                    </li>
-                  ))}
-                </ul>
-                {plan.name === 'Free' ? (
-                  <Button 
-                    className="w-full" 
-                    variant={plan.current ? 'outline' : 'default'}
-                    disabled={plan.current}
-                  >
-                    {plan.current ? 'Current Plan' : 'Get Started'}
-                  </Button>
-                ) : (
-                  <div className="space-y-2">
-                    {plan.current ? (
+                {plan.current && (
+                  <div className="absolute -top-3 right-4">
+                    <Badge className="bg-green-600 text-white px-3 py-1">
+                      Current Plan
+                    </Badge>
+                  </div>
+                )}
+                <CardHeader className="text-center">
+                  <CardTitle className="text-2xl">{plan.name}</CardTitle>
+                  <div className="mt-4">
+                    <span className="text-4xl font-bold">{plan.price}</span>
+                    <span className="text-gray-600">/{plan.period}</span>
+                  </div>
+                  {plan.name === 'Premium' && (
+                    <div className="mt-2 space-y-1">
+                      <div className="text-sm text-gray-600">
+                        Billed yearly: <span className="font-semibold">{plan.monthlyEquivalent}/month</span>
+                      </div>
+                      <div className="text-sm text-green-600 font-medium">
+                        {plan.yearlyPrice} in total – {plan.savings}
+                      </div>
+                    </div>
+                  )}
+                  <CardDescription className="mt-2">{plan.description}</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ul className="space-y-3 mb-6">
+                    {plan.features.map((feature, featureIndex) => (
+                      <li key={featureIndex} className="flex items-center gap-2">
+                        <Check className="w-4 h-4 text-green-500 flex-shrink-0" />
+                        <span className="text-sm">{feature}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  {plan.name === 'Free' ? (
+                    <Button 
+                      className="w-full" 
+                      variant={plan.current ? 'outline' : 'default'}
+                      disabled={plan.current}
+                    >
+                      {plan.current ? 'Current Plan' : 'Get Started'}
+                    </Button>
+                  ) : (
+                    <div className="space-y-2">
                       <Button 
                         className="w-full" 
-                        onClick={handleCancelSubscription}
-                        variant="destructive"
+                        onClick={() => handleSubscribe('monthly')}
+                        disabled={!isAuthenticated}
                       >
-                        <X className="w-4 h-4 mr-2" />
-                        Cancel Subscription
+                        {!isAuthenticated ? 'Login Required' : 'Subscribe Monthly'}
                       </Button>
-                    ) : (
-                      <>
-                        <Button 
-                          className="w-full" 
-                          onClick={() => handleSubscribe('monthly')}
-                          disabled={!isAuthenticated}
-                        >
-                          {!isAuthenticated ? 'Login Required' : 'Subscribe Monthly'}
-                        </Button>
-                        <Button 
-                          className="w-full" 
-                          variant="outline"
-                          onClick={() => handleSubscribe('yearly')}
-                          disabled={!isAuthenticated}
-                        >
-                          {!isAuthenticated ? 'Login Required' : 'Subscribe Yearly'}
-                        </Button>
-                      </>
-                    )}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          ))}
+                      <Button 
+                        className="w-full" 
+                        variant="outline"
+                        onClick={() => handleSubscribe('yearly')}
+                        disabled={!isAuthenticated}
+                      >
+                        {!isAuthenticated ? 'Login Required' : 'Subscribe Yearly'}
+                      </Button>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* FAQ Section */}
       <div className="max-w-3xl mx-auto">
@@ -306,7 +332,7 @@ const Premium = () => {
         </div>
       </div>
 
-      {/* CTA Section */}
+      {/* CTA Section - Only show for non-subscribers */}
       {!isSubscribed && (
         <div className="text-center mt-16 py-12 bg-blue-50 rounded-lg">
           <h2 className="text-2xl font-bold text-gray-900 mb-4">

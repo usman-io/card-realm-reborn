@@ -131,18 +131,28 @@ def cancel_subscription(request):
         except Subscription.DoesNotExist:
             return Response({'error': 'No active subscription found'}, status=404)
 
-        # Cancel the Stripe subscription
-        stripe.Subscription.delete(subscription.stripe_subscription_id)
+        # Cancel the Stripe subscription at period end (so user retains access until billing period ends)
+        stripe_subscription = stripe.Subscription.modify(
+            subscription.stripe_subscription_id,
+            cancel_at_period_end=True
+        )
 
-        # Update local subscription
-        subscription.is_active = False
+        # Update local subscription status
+        subscription.status = 'canceled'
         subscription.save()
 
-        return Response({'message': 'Subscription canceled successfully'})
+        logger.info(f"Subscription {subscription.stripe_subscription_id} set to cancel at period end")
+        return Response({
+            'message': 'Subscription will be canceled at the end of the billing period',
+            'cancel_at_period_end': True,
+            'period_end': stripe_subscription.current_period_end
+        })
 
     except Exception as e:
         logger.error(f"Error canceling subscription: {str(e)}")
         return Response({'error': str(e)}, status=500)
+
+# ... keep existing code (webhook functions and handlers remain the same)
 
 @csrf_exempt
 @require_POST
@@ -196,7 +206,7 @@ def handle_checkout_completed(session):
                 'stripe_customer_id': stripe_customer_id,
                 'stripe_subscription_id': stripe_subscription_id,
                 'plan': plan,
-                'is_active': True,
+                'status': 'active',
             }
         )
         
@@ -218,7 +228,7 @@ def handle_payment_succeeded(invoice):
         # Update subscription status
         try:
             subscription = Subscription.objects.get(stripe_subscription_id=subscription_id)
-            subscription.is_active = True
+            subscription.status = 'active'
             subscription.save()
             logger.info(f"Updated subscription status for {customer['email']}")
         except Subscription.DoesNotExist:
@@ -234,7 +244,7 @@ def handle_subscription_updated(subscription):
         # Update local subscription
         try:
             local_subscription = Subscription.objects.get(stripe_subscription_id=stripe_subscription_id)
-            local_subscription.is_active = subscription['status'] == 'active'
+            local_subscription.status = subscription['status']
             local_subscription.save()
             logger.info(f"Updated subscription {stripe_subscription_id}")
         except Subscription.DoesNotExist:
@@ -250,7 +260,7 @@ def handle_subscription_deleted(subscription):
         # Update local subscription
         try:
             local_subscription = Subscription.objects.get(stripe_subscription_id=stripe_subscription_id)
-            local_subscription.is_active = False
+            local_subscription.status = 'canceled'
             local_subscription.save()
             logger.info(f"Canceled subscription {stripe_subscription_id}")
         except Subscription.DoesNotExist:
