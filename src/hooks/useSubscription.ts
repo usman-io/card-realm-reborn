@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { backendApi } from '@/services/api';
@@ -62,6 +61,20 @@ export const useSubscription = () => {
     }
   };
 
+  const cancelSubscription = async () => {
+    if (!token) throw new Error('Not authenticated');
+    
+    try {
+      await backendApi.cancelSubscription(token);
+      toast.success('Subscription canceled successfully');
+      // Refresh subscription status
+      await fetchSubscription();
+    } catch (err) {
+      toast.error('Failed to cancel subscription');
+      throw new Error('Failed to cancel subscription');
+    }
+  };
+
   useEffect(() => {
     fetchSubscription();
   }, [token, isAuthenticated]);
@@ -74,5 +87,6 @@ export const useSubscription = () => {
     refreshSubscription: fetchSubscription,
     createCheckoutSession,
     createPortalSession,
+    cancelSubscription,
   };
 };

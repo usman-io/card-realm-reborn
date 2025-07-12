@@ -1,4 +1,3 @@
-
 import stripe
 from django.conf import settings
 from django.http import JsonResponse
@@ -128,6 +127,33 @@ def create_portal_session(request):
     except Subscription.DoesNotExist:
         return Response({'error': 'No subscription found'}, status=status.HTTP_404_NOT_FOUND)
     except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@api_view(['POST'])
+@permission_classes([permissions.IsAuthenticated])
+def cancel_subscription(request):
+    try:
+        subscription_obj = Subscription.objects.get(user=request.user)
+        
+        if not subscription_obj.stripe_subscription_id:
+            return Response({'error': 'No active subscription found'}, status=status.HTTP_404_NOT_FOUND)
+        
+        # Cancel the subscription in Stripe
+        stripe.Subscription.modify(
+            subscription_obj.stripe_subscription_id,
+            cancel_at_period_end=True
+        )
+        
+        # Update local subscription status
+        subscription_obj.status = 'canceled'
+        subscription_obj.save()
+        
+        return Response({'message': 'Subscription canceled successfully'})
+        
+    except Subscription.DoesNotExist:
+        return Response({'error': 'No subscription found'}, status=status.HTTP_404_NOT_FOUND)
+    except Exception as e:
+        print(f"Error canceling subscription: {e}")
         return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @csrf_exempt

@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Check, Star, Zap, Shield, Crown, Loader2 } from 'lucide-react';
+import { Check, Star, Zap, Shield, Crown, Loader2, X } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSubscription } from '@/hooks/useSubscription';
 import { toast } from 'sonner';
@@ -10,7 +10,7 @@ import { useSearchParams, useNavigate } from 'react-router-dom';
 
 const Premium = () => {
   const { isAuthenticated } = useAuth();
-  const { subscription, loading, isSubscribed, createCheckoutSession, createPortalSession, refreshSubscription } = useSubscription();
+  const { subscription, loading, isSubscribed, createCheckoutSession, createPortalSession, refreshSubscription, cancelSubscription } = useSubscription();
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
 
@@ -120,6 +120,17 @@ const Premium = () => {
     }
   };
 
+  const handleCancelSubscription = async () => {
+    if (confirm('Are you sure you want to cancel your subscription? You will lose access to premium features at the end of your billing period.')) {
+      try {
+        await cancelSubscription();
+        toast.success('Subscription canceled successfully. You will retain access until the end of your billing period.');
+      } catch (error) {
+        toast.error('Failed to cancel subscription');
+      }
+    }
+  };
+
   if (loading) {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -142,9 +153,20 @@ const Premium = () => {
           designed for serious collectors and investors.
         </p>
         {isSubscribed ? (
-          <Badge variant="default" className="text-sm px-4 py-2 bg-green-600">
-            ✅ Premium Active - {subscription?.plan} plan
-          </Badge>
+          <div className="flex flex-col items-center gap-2">
+            <Badge variant="default" className="text-sm px-4 py-2 bg-green-600">
+              ✅ Premium Active - {subscription?.plan} plan
+            </Badge>
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={handleCancelSubscription}
+              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+            >
+              <X className="w-4 h-4 mr-1" />
+              Cancel Subscription
+            </Button>
+          </div>
         ) : (
           <Badge variant="secondary" className="text-sm px-4 py-2">
             🎉 Start your premium journey today
@@ -229,13 +251,24 @@ const Premium = () => {
                 ) : (
                   <div className="space-y-2">
                     {plan.current ? (
-                      <Button 
-                        className="w-full" 
-                        onClick={handleManageSubscription}
-                        variant="outline"
-                      >
-                        Manage Subscription
-                      </Button>
+                      <div className="space-y-2">
+                        <Button 
+                          className="w-full" 
+                          onClick={handleManageSubscription}
+                          variant="outline"
+                        >
+                          Manage Subscription
+                        </Button>
+                        <Button 
+                          className="w-full" 
+                          onClick={handleCancelSubscription}
+                          variant="outline"
+                          size="sm"
+                        >
+                          <X className="w-4 h-4 mr-1" />
+                          Cancel Subscription
+                        </Button>
+                      </div>
                     ) : (
                       <>
                         <Button 
