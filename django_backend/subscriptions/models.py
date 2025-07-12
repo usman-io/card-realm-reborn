@@ -31,3 +31,12 @@ class Subscription(models.Model):
     @property
     def is_active(self):
         return self.status == 'active'
+
+    # setter for is_active
+    @is_active.setter
+    def is_active(self, value):
+        if value:
+            self.status = 'active'
+        else:
+            self.status = 'canceled'
+        self.save()
