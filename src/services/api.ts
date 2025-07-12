@@ -282,4 +282,14 @@ export const backendApi = {
     });
     return response.json();
   },
+
+  async cancelSubscription(token: string) {
+    const response = await fetch(`${API_BASE_URL}/cancel-subscription/`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Token ${token}`,
+      },
+    });
+    return response.json();
+  },
 };

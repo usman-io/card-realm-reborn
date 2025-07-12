@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -7,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import { Pagination, PaginationContent, PaginationEllipsis, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '@/components/ui/pagination';
 import { pokemonApi } from '@/services/api';
 import { PokemonSet } from '@/types/api';
 import { Search, Calendar, Package, List } from 'lucide-react';
@@ -16,6 +16,9 @@ const Sets = () => {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [filteredSets, setFilteredSets] = useState<PokemonSet[]>([]);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
   const [collectionStatus, setCollectionStatus] = useState('all');
   const [sortBy, setSortBy] = useState('series');
   const [sortOrder, setSortOrder] = useState('new-to-old');
@@ -28,9 +31,14 @@ const Sets = () => {
   useEffect(() => {
     const fetchSets = async () => {
       try {
-        const response = await pokemonApi.getSets({ orderBy: '-releaseDate' });
+        const response = await pokemonApi.getSets({ 
+          orderBy: '-releaseDate',
+          page: page.toString(),
+          pageSize: '50'
+        });
         setSets(response.data);
-        setFilteredSets(response.data);
+        setTotalCount(response.totalCount || response.data.length);
+        setTotalPages(Math.ceil((response.totalCount || response.data.length) / 50));
         
         // Extract unique series with proper Set typing
         const seriesSet = new Set<string>(response.data.map((set: PokemonSet) => set.series));
@@ -44,7 +52,7 @@ const Sets = () => {
     };
 
     fetchSets();
-  }, []);
+  }, [page]);
 
   useEffect(() => {
     let filtered = sets;
@@ -86,6 +94,96 @@ const Sets = () => {
 
     setFilteredSets(filtered);
   }, [searchQuery, sets, collectionStatus, sortBy, sortOrder, selectedSeries]);
+
+  const handlePageChange = (newPage: number) => {
+    setPage(newPage);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const renderPaginationItems = () => {
+    const items = [];
+    const maxVisiblePages = 5;
+    
+    if (totalPages <= maxVisiblePages) {
+      for (let i = 1; i <= totalPages; i++) {
+        items.push(
+          <PaginationItem key={i}>
+            <PaginationLink
+              onClick={() => handlePageChange(i)}
+              isActive={page === i}
+              className="cursor-pointer"
+            >
+              {i}
+            </PaginationLink>
+          </PaginationItem>
+        );
+      }
+    } else {
+      // Show first page
+      items.push(
+        <PaginationItem key={1}>
+          <PaginationLink
+            onClick={() => handlePageChange(1)}
+            isActive={page === 1}
+            className="cursor-pointer"
+          >
+            1
+          </PaginationLink>
+        </PaginationItem>
+      );
+
+      if (page > 3) {
+        items.push(
+          <PaginationItem key="ellipsis1">
+            <PaginationEllipsis />
+          </PaginationItem>
+        );
+      }
+
+      // Show current page and surrounding pages
+      const start = Math.max(2, page - 1);
+      const end = Math.min(totalPages - 1, page + 1);
+      
+      for (let i = start; i <= end; i++) {
+        items.push(
+          <PaginationItem key={i}>
+            <PaginationLink
+              onClick={() => handlePageChange(i)}
+              isActive={page === i}
+              className="cursor-pointer"
+            >
+              {i}
+            </PaginationLink>
+          </PaginationItem>
+        );
+      }
+
+      if (page < totalPages - 2) {
+        items.push(
+          <PaginationItem key="ellipsis2">
+            <PaginationEllipsis />
+          </PaginationItem>
+        );
+      }
+
+      // Show last page
+      if (totalPages > 1) {
+        items.push(
+          <PaginationItem key={totalPages}>
+            <PaginationLink
+              onClick={() => handlePageChange(totalPages)}
+              isActive={page === totalPages}
+              className="cursor-pointer"
+            >
+              {totalPages}
+            </PaginationLink>
+          </PaginationItem>
+        );
+      }
+    }
+
+    return items;
+  };
 
   if (loading) {
     return (
@@ -136,7 +234,9 @@ const Sets = () => {
 
         {/* Results count */}
         <div className="mb-4">
-          <p className="text-gray-600">{filteredSets.length} sets found</p>
+          <p className="text-gray-600">
+            {totalCount} sets found • Page {page} of {totalPages}
+          </p>
         </div>
 
         {/* Sort and Display Options */}
@@ -259,6 +359,31 @@ const Sets = () => {
           </Link>
         ))}
       </div>
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="mt-8">
+          <Pagination>
+            <PaginationContent>
+              <PaginationItem>
+                <PaginationPrevious 
+                  onClick={() => handlePageChange(Math.max(1, page - 1))}
+                  className={page === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                />
+              </PaginationItem>
+              
+              {renderPaginationItems()}
+              
+              <PaginationItem>
+                <PaginationNext 
+                  onClick={() => handlePageChange(Math.min(totalPages, page + 1))}
+                  className={page === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                />
+              </PaginationItem>
+            </PaginationContent>
+          </Pagination>
+        </div>
+      )}
 
       {filteredSets.length === 0 && !loading && (
         <div className="text-center py-12">

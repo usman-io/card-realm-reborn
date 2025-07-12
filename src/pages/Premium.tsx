@@ -1,8 +1,9 @@
+
 import React, { useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Check, Star, Zap, Shield, Crown, Loader2 } from 'lucide-react';
+import { Check, Star, Zap, Shield, Crown, Loader2, X } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSubscription } from '@/hooks/useSubscription';
 import { toast } from 'sonner';
@@ -10,7 +11,7 @@ import { useSearchParams, useNavigate } from 'react-router-dom';
 
 const Premium = () => {
   const { isAuthenticated } = useAuth();
-  const { subscription, loading, isSubscribed, createCheckoutSession, createPortalSession, refreshSubscription } = useSubscription();
+  const { subscription, loading, isSubscribed, createCheckoutSession, cancelSubscription, refreshSubscription } = useSubscription();
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
 
@@ -112,11 +113,15 @@ const Premium = () => {
     }
   };
 
-  const handleManageSubscription = async () => {
+  const handleCancelSubscription = async () => {
+    if (!window.confirm('Are you sure you want to cancel your subscription? You will lose access to premium features.')) {
+      return;
+    }
+
     try {
-      await createPortalSession();
+      await cancelSubscription();
     } catch (error) {
-      toast.error('Failed to open subscription management');
+      // Error handling is done in the hook
     }
   };
 
@@ -231,10 +236,11 @@ const Premium = () => {
                     {plan.current ? (
                       <Button 
                         className="w-full" 
-                        onClick={handleManageSubscription}
-                        variant="outline"
+                        onClick={handleCancelSubscription}
+                        variant="destructive"
                       >
-                        Manage Subscription
+                        <X className="w-4 h-4 mr-2" />
+                        Cancel Subscription
                       </Button>
                     ) : (
                       <>

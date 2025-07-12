@@ -1,57 +1,59 @@
-import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { AuthProvider } from "@/contexts/AuthContext";
-import Header from "@/components/Header";
-import ProtectedRoute from "@/components/ProtectedRoute";
-import Home from "@/pages/Home";
-import Login from "@/pages/Login";
-import Register from "@/pages/Register";
-import Dashboard from "@/pages/Dashboard";
-import Sets from "@/pages/Sets";
-import SetDetail from "@/pages/SetDetail";
-import Cards from "@/pages/Cards";
-import CardDetail from "@/pages/CardDetail";
-import Premium from "@/pages/Premium";
-import PaymentSuccess from "@/pages/PaymentSuccess";
-import NotFound from "./pages/NotFound";
+
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { AuthProvider } from '@/contexts/AuthContext';
+import { Toaster } from '@/components/ui/sonner';
+import Header from '@/components/Header';
+import Home from '@/pages/Home';
+import Cards from '@/pages/Cards';
+import Sets from '@/pages/Sets';
+import CardDetail from '@/pages/CardDetail';
+import SetDetail from '@/pages/SetDetail';
+import Dashboard from '@/pages/Dashboard';
+import Premium from '@/pages/Premium';
+import PaymentSuccess from '@/pages/PaymentSuccess';
+import Login from '@/pages/Login';
+import Register from '@/pages/Register';
+import NotFound from '@/pages/NotFound';
+import ProtectedRoute from '@/components/ProtectedRoute';
 
 const queryClient = new QueryClient();
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <AuthProvider>
+function App() {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        <Router>
           <div className="min-h-screen bg-gray-50">
             <Header />
-            <Routes>
-              <Route path="/" element={<Home />} />
-              <Route path="/login" element={<Login />} />
-              <Route path="/register" element={<Register />} />
-              <Route path="/dashboard" element={
-                <ProtectedRoute>
-                  <Dashboard />
-                </ProtectedRoute>
-              } />
-              <Route path="/sets" element={<Sets />} />
-              <Route path="/sets/:id" element={<SetDetail />} />
-              <Route path="/cards" element={<Cards />} />
-              <Route path="/cards/:id" element={<CardDetail />} />
-              <Route path="/premium" element={<Premium />} />
-              <Route path="/payment-success" element={<PaymentSuccess />} />
-              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-              <Route path="*" element={<NotFound />} />
-            </Routes>
+            <main>
+              <Routes>
+                <Route path="/" element={<Home />} />
+                <Route path="/cards" element={<Cards />} />
+                <Route path="/cards/:id" element={<CardDetail />} />
+                <Route path="/sets" element={<Sets />} />
+                <Route path="/sets/:id" element={<SetDetail />} />
+                <Route path="/premium" element={<Premium />} />
+                <Route path="/payment-success" element={<PaymentSuccess />} />
+                <Route path="/login" element={<Login />} />
+                <Route path="/register" element={<Register />} />
+                <Route 
+                  path="/dashboard" 
+                  element={
+                    <ProtectedRoute>
+                      <Dashboard />
+                    </ProtectedRoute>
+                  } 
+                />
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </main>
+            <Toaster />
           </div>
-        </AuthProvider>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
+        </Router>
+      </AuthProvider>
+    </QueryClientProvider>
+  );
+}
 
 export default App;
