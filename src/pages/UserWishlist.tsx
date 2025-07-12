@@ -5,8 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '@/components/ui/pagination';
-import { backendApi } from '@/services/api';
-import { Wishlist } from '@/types/api';
+import { backendApi, pokemonApi } from '@/services/api';
+import { Wishlist, PokemonCard } from '@/types/api';
 import { ArrowLeft, Heart, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
@@ -17,14 +17,28 @@ interface PaginatedResponse {
   results: Wishlist[];
 }
 
+interface WishlistWithCard extends Wishlist {
+  cardData?: PokemonCard;
+}
+
 const UserWishlist = () => {
   const { token } = useAuth();
   const navigate = useNavigate();
-  const [wishlist, setWishlist] = useState<Wishlist[]>([]);
+  const [wishlist, setWishlist] = useState<WishlistWithCard[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
+
+  const fetchCardData = async (cardId: string): Promise<PokemonCard | null> => {
+    try {
+      const response = await pokemonApi.getCard(cardId);
+      return response.data;
+    } catch (error) {
+      console.error(`Error fetching card data for ${cardId}:`, error);
+      return null;
+    }
+  };
 
   const fetchWishlist = async (page = 1) => {
     if (!token) return;
@@ -37,7 +51,15 @@ const UserWishlist = () => {
 
       const response: PaginatedResponse = await backendApi.getUserWishlistCards(token, params);
       
-      setWishlist(response.results);
+      // Fetch card data for each wishlist item
+      const wishlistWithCards = await Promise.all(
+        response.results.map(async (item) => {
+          const cardData = await fetchCardData(item.card_id);
+          return { ...item, cardData };
+        })
+      );
+
+      setWishlist(wishlistWithCards);
       setTotalCount(response.count);
       setTotalPages(Math.ceil(response.count / 20)); // 20 items per page
     } catch (error) {
@@ -127,34 +149,62 @@ const UserWishlist = () => {
               <p className="text-sm mt-2">Add cards to your wishlist while browsing!</p>
             </div>
           ) : (
-            <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {wishlist.map((item) => (
-                <div key={item.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50">
-                  <div className="flex-1">
-                    <p className="font-medium text-lg">Card ID: {item.card_id}</p>
-                    <div className="flex items-center gap-4 mt-2">
-                      <Badge variant="outline" className={getPriorityColor(item.priority)}>
-                        {item.priority} Priority
-                      </Badge>
+                <div key={item.id} className="border rounded-lg p-4 hover:shadow-lg transition-shadow">
+                  <div className="flex flex-col gap-4">
+                    {/* Card Image */}
+                    <div className="flex justify-center">
+                      {item.cardData?.images?.small ? (
+                        <img
+                          src={item.cardData.images.small}
+                          alt={item.cardData.name || `Card ${item.card_id}`}
+                          className="w-32 h-44 object-cover rounded-lg shadow-md"
+                        />
+                      ) : (
+                        <div className="w-32 h-44 bg-gray-200 rounded-lg flex items-center justify-center">
+                          <span className="text-gray-500 text-sm">No Image</span>
+                        </div>
+                      )}
                     </div>
-                    {item.notes && (
-                      <p className="text-sm text-gray-600 mt-2 italic">
-                        Note: {item.notes}
+                    
+                    {/* Card Info */}
+                    <div className="flex-1">
+                      <h3 className="font-medium text-lg mb-2">
+                        {item.cardData?.name || `Card ID: ${item.card_id}`}
+                      </h3>
+                      <div className="flex flex-wrap gap-2 mb-3">
+                        <Badge variant="outline" className={getPriorityColor(item.priority)}>
+                          {item.priority} Priority
+                        </Badge>
+                      </div>
+                      {item.cardData && (
+                        <div className="text-sm text-gray-600 mb-2">
+                          <p>Set: {item.cardData.set?.name}</p>
+                          <p>Rarity: {item.cardData.rarity}</p>
+                        </div>
+                      )}
+                      {item.notes && (
+                        <p className="text-sm text-gray-600 mb-2 italic">
+                          Note: {item.notes}
+                        </p>
+                      )}
+                      <p className="text-xs text-gray-500">
+                        Added: {new Date(item.added_date).toLocaleDateString()}
                       </p>
-                    )}
-                    <p className="text-xs text-gray-500 mt-2">
-                      Added: {new Date(item.added_date).toLocaleDateString()}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleDeleteWishlist(item.id)}
-                      className="text-red-600 hover:text-red-700"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                    </div>
+                    
+                    {/* Actions */}
+                    <div className="flex justify-end">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleDeleteWishlist(item.id)}
+                        className="text-red-600 hover:text-red-700"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
                 </div>
               ))}

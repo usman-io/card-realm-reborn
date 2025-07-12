@@ -8,17 +8,35 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { UsageCard } from '@/components/UsageCard';
 import { PremiumFeatureGate } from '@/components/PremiumFeatureGate';
-import { backendApi } from '@/services/api';
-import { Collection, Wishlist, DashboardAnalytics } from '@/types/api';
+import { backendApi, pokemonApi } from '@/services/api';
+import { Collection, Wishlist, DashboardAnalytics, PokemonCard } from '@/types/api';
 import { Edit, Trash2, ChevronRight, Trophy, BarChart3, Heart, Copy, Award, Clock, Crown, TrendingUp, DollarSign, Eye } from 'lucide-react';
+
+interface CollectionWithCard extends Collection {
+  cardData?: PokemonCard;
+}
+
+interface WishlistWithCard extends Wishlist {
+  cardData?: PokemonCard;
+}
 
 const Dashboard = () => {
   const { user, token } = useAuth();
   const navigate = useNavigate();
-  const [collection, setCollection] = useState<Collection[]>([]);
-  const [wishlist, setWishlist] = useState<Wishlist[]>([]);
+  const [collection, setCollection] = useState<CollectionWithCard[]>([]);
+  const [wishlist, setWishlist] = useState<WishlistWithCard[]>([]);
   const [analytics, setAnalytics] = useState<DashboardAnalytics | null>(null);
   const [loading, setLoading] = useState(true);
+
+  const fetchCardData = async (cardId: string): Promise<PokemonCard | null> => {
+    try {
+      const response = await pokemonApi.getCard(cardId);
+      return response.data;
+    } catch (error) {
+      console.error(`Error fetching card data for ${cardId}:`, error);
+      return null;
+    }
+  };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -31,13 +49,31 @@ const Dashboard = () => {
         setLoading(true);
         
         const [collectionResponse, wishlistResponse, analyticsResponse] = await Promise.all([
-          backendApi.getCollection(token),
-          backendApi.getWishlist(token),
+          backendApi.getCollection(token, { limit: '4', ordering: '-added_date' }),
+          backendApi.getWishlist(token, { limit: '4', ordering: '-added_date' }),
           backendApi.getDashboardAnalytics(token)
         ]);
 
-        setCollection(Array.isArray(collectionResponse) ? collectionResponse : []);
-        setWishlist(Array.isArray(wishlistResponse) ? wishlistResponse : []);
+        // Fetch card data for recent collection items
+        const collectionArray = Array.isArray(collectionResponse) ? collectionResponse : [];
+        const collectionWithCards = await Promise.all(
+          collectionArray.slice(0, 4).map(async (item) => {
+            const cardData = await fetchCardData(item.card_id);
+            return { ...item, cardData };
+          })
+        );
+
+        // Fetch card data for recent wishlist items
+        const wishlistArray = Array.isArray(wishlistResponse) ? wishlistResponse : [];
+        const wishlistWithCards = await Promise.all(
+          wishlistArray.slice(0, 4).map(async (item) => {
+            const cardData = await fetchCardData(item.card_id);
+            return { ...item, cardData };
+          })
+        );
+
+        setCollection(collectionWithCards);
+        setWishlist(wishlistWithCards);
         setAnalytics(analyticsResponse);
       } catch (error) {
         console.error('Error fetching dashboard data:', error);
@@ -421,43 +457,50 @@ const Dashboard = () => {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {collection.slice(0, 4).map((item) => (
-                    <div key={item.id} className="flex items-center justify-between p-4 border rounded-lg">
-                      <div className="flex-1">
-                        <p className="font-medium">Card ID: {item.card_id}</p>
-                        <p className="text-sm text-gray-500">
-                          Quantity: {item.quantity} | Condition: {item.condition} | Variant: {item.variant}
-                        </p>
-                        {item.notes && (
-                          <p className="text-sm text-gray-600 mt-1 italic">
-                            Note: {item.notes}
-                          </p>
-                        )}
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    {collection.map((item) => (
+                      <div key={item.id} className="border rounded-lg p-4 hover:shadow-lg transition-shadow">
+                        <div className="flex flex-col gap-3">
+                          {/* Card Image */}
+                          <div className="flex justify-center">
+                            {item.cardData?.images?.small ? (
+                              <img
+                                src={item.cardData.images.small}
+                                alt={item.cardData.name || `Card ${item.card_id}`}
+                                className="w-24 h-32 object-cover rounded-lg shadow-md"
+                              />
+                            ) : (
+                              <div className="w-24 h-32 bg-gray-200 rounded-lg flex items-center justify-center">
+                                <span className="text-gray-500 text-xs">No Image</span>
+                              </div>
+                            )}
+                          </div>
+                          
+                          {/* Card Info */}
+                          <div className="text-center">
+                            <p className="font-medium text-sm mb-1">
+                              {item.cardData?.name || `Card ${item.card_id}`}
+                            </p>
+                            <div className="flex flex-wrap justify-center gap-1 mb-2">
+                              <Badge variant="outline" className="text-xs">Qty: {item.quantity}</Badge>
+                              <Badge variant="outline" className="text-xs">{item.condition}</Badge>
+                            </div>
+                            <p className="text-xs text-gray-500">
+                              {new Date(item.added_date).toLocaleDateString()}
+                            </p>
+                          </div>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <Badge variant="outline">
-                          {new Date(item.added_date).toLocaleDateString()}
-                        </Badge>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleDeleteCollection(item.id)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-                  {collection.length > 4 && (
-                    <div className="text-center pt-4">
-                      <Button
-                        variant="outline"
-                        onClick={() => handleQuickAccess('collection')}
-                      >
-                        View All Collection ({collection.length} cards)
-                      </Button>
-                    </div>
-                  )}
+                    ))}
+                  </div>
+                  <div className="text-center pt-4">
+                    <Button
+                      variant="outline"
+                      onClick={() => handleQuickAccess('collection')}
+                    >
+                      View All Collection ({analytics?.total_cards || 0} cards)
+                    </Button>
+                  </div>
                 </div>
               )}
             </CardContent>
@@ -480,43 +523,51 @@ const Dashboard = () => {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {wishlist.slice(0, 4).map((item) => (
-                    <div key={item.id} className="flex items-center justify-between p-4 border rounded-lg">
-                      <div className="flex-1">
-                        <p className="font-medium">Card ID: {item.card_id}</p>
-                        <p className="text-sm text-gray-500">
-                          Priority: {item.priority}
-                        </p>
-                        {item.notes && (
-                          <p className="text-sm text-gray-600 mt-1 italic">
-                            Note: {item.notes}
-                          </p>
-                        )}
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    {wishlist.map((item) => (
+                      <div key={item.id} className="border rounded-lg p-4 hover:shadow-lg transition-shadow">
+                        <div className="flex flex-col gap-3">
+                          {/* Card Image */}
+                          <div className="flex justify-center">
+                            {item.cardData?.images?.small ? (
+                              <img
+                                src={item.cardData.images.small}
+                                alt={item.cardData.name || `Card ${item.card_id}`}
+                                className="w-24 h-32 object-cover rounded-lg shadow-md"
+                              />
+                            ) : (
+                              <div className="w-24 h-32 bg-gray-200 rounded-lg flex items-center justify-center">
+                                <span className="text-gray-500 text-xs">No Image</span>
+                              </div>
+                            )}
+                          </div>
+                          
+                          {/* Card Info */}
+                          <div className="text-center">
+                            <p className="font-medium text-sm mb-1">
+                              {item.cardData?.name || `Card ${item.card_id}`}
+                            </p>
+                            <div className="flex justify-center mb-2">
+                              <Badge variant="outline" className="text-xs">
+                                {item.priority} Priority
+                              </Badge>
+                            </div>
+                            <p className="text-xs text-gray-500">
+                              {new Date(item.added_date).toLocaleDateString()}
+                            </p>
+                          </div>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <Badge variant="outline">
-                          {new Date(item.added_date).toLocaleDateString()}
-                        </Badge>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleDeleteWishlist(item.id)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-                  {wishlist.length > 4 && (
-                    <div className="text-center pt-4">
-                      <Button
-                        variant="outline"
-                        onClick={() => handleQuickAccess('wishlist')}
-                      >
-                        View All Wishlist ({wishlist.length} cards)
-                      </Button>
-                    </div>
-                  )}
+                    ))}
+                  </div>
+                  <div className="text-center pt-4">
+                    <Button
+                      variant="outline"
+                      onClick={() => handleQuickAccess('wishlist')}
+                    >
+                      View All Wishlist ({analytics?.wishlist_count || 0} cards)
+                    </Button>
+                  </div>
                 </div>
               )}
             </CardContent>

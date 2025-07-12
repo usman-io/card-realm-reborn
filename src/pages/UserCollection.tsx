@@ -5,8 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '@/components/ui/pagination';
-import { backendApi } from '@/services/api';
-import { Collection } from '@/types/api';
+import { backendApi, pokemonApi } from '@/services/api';
+import { Collection, PokemonCard } from '@/types/api';
 import { ArrowLeft, BarChart3, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
@@ -17,14 +17,28 @@ interface PaginatedResponse {
   results: Collection[];
 }
 
+interface CollectionWithCard extends Collection {
+  cardData?: PokemonCard;
+}
+
 const UserCollection = () => {
   const { token } = useAuth();
   const navigate = useNavigate();
-  const [collection, setCollection] = useState<Collection[]>([]);
+  const [collection, setCollection] = useState<CollectionWithCard[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
+
+  const fetchCardData = async (cardId: string): Promise<PokemonCard | null> => {
+    try {
+      const response = await pokemonApi.getCard(cardId);
+      return response.data;
+    } catch (error) {
+      console.error(`Error fetching card data for ${cardId}:`, error);
+      return null;
+    }
+  };
 
   const fetchCollection = async (page = 1) => {
     if (!token) return;
@@ -37,7 +51,15 @@ const UserCollection = () => {
 
       const response: PaginatedResponse = await backendApi.getUserCollectionCards(token, params);
       
-      setCollection(response.results);
+      // Fetch card data for each collection item
+      const collectionWithCards = await Promise.all(
+        response.results.map(async (item) => {
+          const cardData = await fetchCardData(item.card_id);
+          return { ...item, cardData };
+        })
+      );
+
+      setCollection(collectionWithCards);
       setTotalCount(response.count);
       setTotalPages(Math.ceil(response.count / 20)); // 20 items per page
     } catch (error) {
@@ -112,37 +134,65 @@ const UserCollection = () => {
               <p className="text-sm mt-2">Start by browsing cards and adding them to your collection!</p>
             </div>
           ) : (
-            <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {collection.map((item) => (
-                <div key={item.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50">
-                  <div className="flex-1">
-                    <p className="font-medium text-lg">Card ID: {item.card_id}</p>
-                    <div className="flex items-center gap-4 mt-2">
-                      <Badge variant="outline">Qty: {item.quantity}</Badge>
-                      <Badge variant="outline">{item.condition}</Badge>
-                      <Badge variant="outline">{item.variant}</Badge>
-                      <Badge variant="outline">{item.language}</Badge>
-                      {item.is_graded && <Badge variant="default">Graded</Badge>}
+                <div key={item.id} className="border rounded-lg p-4 hover:shadow-lg transition-shadow">
+                  <div className="flex flex-col gap-4">
+                    {/* Card Image */}
+                    <div className="flex justify-center">
+                      {item.cardData?.images?.small ? (
+                        <img
+                          src={item.cardData.images.small}
+                          alt={item.cardData.name || `Card ${item.card_id}`}
+                          className="w-32 h-44 object-cover rounded-lg shadow-md"
+                        />
+                      ) : (
+                        <div className="w-32 h-44 bg-gray-200 rounded-lg flex items-center justify-center">
+                          <span className="text-gray-500 text-sm">No Image</span>
+                        </div>
+                      )}
                     </div>
-                    {item.notes && (
-                      <p className="text-sm text-gray-600 mt-2 italic">
-                        Note: {item.notes}
+                    
+                    {/* Card Info */}
+                    <div className="flex-1">
+                      <h3 className="font-medium text-lg mb-2">
+                        {item.cardData?.name || `Card ID: ${item.card_id}`}
+                      </h3>
+                      <div className="flex flex-wrap gap-2 mb-3">
+                        <Badge variant="outline">Qty: {item.quantity}</Badge>
+                        <Badge variant="outline">{item.condition}</Badge>
+                        <Badge variant="outline">{item.variant}</Badge>
+                        <Badge variant="outline">{item.language}</Badge>
+                        {item.is_graded && <Badge variant="default">Graded</Badge>}
+                      </div>
+                      {item.cardData && (
+                        <div className="text-sm text-gray-600 mb-2">
+                          <p>Set: {item.cardData.set?.name}</p>
+                          <p>Rarity: {item.cardData.rarity}</p>
+                        </div>
+                      )}
+                      {item.notes && (
+                        <p className="text-sm text-gray-600 mb-2 italic">
+                          Note: {item.notes}
+                        </p>
+                      )}
+                      <p className="text-xs text-gray-500">
+                        Added: {new Date(item.added_date).toLocaleDateString()} | 
+                        Updated: {new Date(item.updated_date).toLocaleDateString()}
                       </p>
-                    )}
-                    <p className="text-xs text-gray-500 mt-2">
-                      Added: {new Date(item.added_date).toLocaleDateString()} | 
-                      Updated: {new Date(item.updated_date).toLocaleDateString()}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleDeleteCollection(item.id)}
-                      className="text-red-600 hover:text-red-700"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                    </div>
+                    
+                    {/* Actions */}
+                    <div className="flex justify-end">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleDeleteCollection(item.id)}
+                        className="text-red-600 hover:text-red-700"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
                 </div>
               ))}
