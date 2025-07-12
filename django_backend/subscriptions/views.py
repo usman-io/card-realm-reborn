@@ -93,8 +93,8 @@ def create_checkout_session(request):
                 'quantity': 1,
             }],
             mode='subscription',
-            success_url=request.build_absolute_uri('/premium?success=true'),
-            cancel_url=request.build_absolute_uri('/premium?canceled=true'),
+            success_url='http://localhost:3000/premium?success=true&session_id={CHECKOUT_SESSION_ID}',
+            cancel_url='http://localhost:3000/premium?canceled=true',
             metadata={
                 'user_id': request.user.id,
                 'plan': plan,
@@ -104,6 +104,7 @@ def create_checkout_session(request):
         return Response({'url': checkout_session.url})
         
     except Exception as e:
+        print(f"Error creating checkout session: {e}")
         return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @api_view(['POST'])
@@ -115,7 +116,7 @@ def create_portal_session(request):
         
         portal_session = stripe.billing_portal.Session.create(
             customer=customer_id,
-            return_url=request.build_absolute_uri('/premium'),
+            return_url='http://localhost:3000/premium',
         )
         
         return Response({'url': portal_session.url})
@@ -131,31 +132,41 @@ def stripe_webhook(request):
     payload = request.body
     sig_header = request.META.get('HTTP_STRIPE_SIGNATURE')
     
+    print(f"Webhook received: {request.META.get('HTTP_STRIPE_SIGNATURE')}")
+    
     try:
         event = stripe.Webhook.construct_event(
             payload, sig_header, settings.STRIPE_WEBHOOK_SECRET
         )
-    except ValueError:
+        print(f"Webhook event type: {event['type']}")
+    except ValueError as e:
+        print(f"Invalid payload: {e}")
         return JsonResponse({'error': 'Invalid payload'}, status=400)
-    except stripe.error.SignatureVerificationError:
+    except stripe.error.SignatureVerificationError as e:
+        print(f"Invalid signature: {e}")
         return JsonResponse({'error': 'Invalid signature'}, status=400)
     
     if event['type'] == 'checkout.session.completed':
         session = event['data']['object']
+        print(f"Processing checkout.session.completed: {session['id']}")
         handle_checkout_session_completed(session)
     elif event['type'] == 'invoice.payment_succeeded':
         invoice = event['data']['object']
+        print(f"Processing invoice.payment_succeeded: {invoice['id']}")
         handle_payment_succeeded(invoice)
     elif event['type'] == 'customer.subscription.updated':
         subscription = event['data']['object']
+        print(f"Processing customer.subscription.updated: {subscription['id']}")
         handle_subscription_updated(subscription)
     elif event['type'] == 'customer.subscription.deleted':
         subscription = event['data']['object']
+        print(f"Processing customer.subscription.deleted: {subscription['id']}")
         handle_subscription_deleted(subscription)
     
     return JsonResponse({'status': 'success'})
 
 def handle_checkout_session_completed(session):
+    print(f"Handling checkout session completed: {session}")
     user_id = session['metadata']['user_id']
     plan = session['metadata']['plan']
     customer_id = session['customer']
@@ -164,9 +175,11 @@ def handle_checkout_session_completed(session):
     try:
         from django.contrib.auth.models import User
         user = User.objects.get(id=user_id)
+        print(f"Found user: {user.email}")
         
         # Get subscription details from Stripe
         stripe_subscription = stripe.Subscription.retrieve(subscription_id)
+        print(f"Retrieved Stripe subscription: {stripe_subscription.id}")
         
         subscription_obj, created = Subscription.objects.get_or_create(
             user=user,
@@ -188,6 +201,8 @@ def handle_checkout_session_completed(session):
             subscription_obj.current_period_start = datetime.fromtimestamp(stripe_subscription.current_period_start)
             subscription_obj.current_period_end = datetime.fromtimestamp(stripe_subscription.current_period_end)
             subscription_obj.save()
+        
+        print(f"Subscription {'created' if created else 'updated'} successfully for user {user.email}")
             
     except Exception as e:
         print(f"Error handling checkout session: {e}")
@@ -199,8 +214,9 @@ def handle_payment_succeeded(invoice):
         subscription_obj = Subscription.objects.get(stripe_subscription_id=subscription_id)
         subscription_obj.status = 'active'
         subscription_obj.save()
+        print(f"Updated subscription status to active for {subscription_obj.user.email}")
     except Subscription.DoesNotExist:
-        pass
+        print(f"Subscription not found for stripe_subscription_id: {subscription_id}")
 
 def handle_subscription_updated(subscription):
     subscription_id = subscription['id']
@@ -211,8 +227,9 @@ def handle_subscription_updated(subscription):
         subscription_obj.current_period_start = datetime.fromtimestamp(subscription['current_period_start'])
         subscription_obj.current_period_end = datetime.fromtimestamp(subscription['current_period_end'])
         subscription_obj.save()
+        print(f"Updated subscription for {subscription_obj.user.email}")
     except Subscription.DoesNotExist:
-        pass
+        print(f"Subscription not found for stripe_subscription_id: {subscription_id}")
 
 def handle_subscription_deleted(subscription):
     subscription_id = subscription['id']
@@ -221,5 +238,6 @@ def handle_subscription_deleted(subscription):
         subscription_obj = Subscription.objects.get(stripe_subscription_id=subscription_id)
         subscription_obj.status = 'canceled'
         subscription_obj.save()
+        print(f"Canceled subscription for {subscription_obj.user.email}")
     except Subscription.DoesNotExist:
-        pass
+        print(f"Subscription not found for stripe_subscription_id: {subscription_id}")

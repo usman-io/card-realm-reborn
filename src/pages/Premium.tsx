@@ -6,30 +6,34 @@ import { Check, Star, Zap, Shield, Crown, Loader2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSubscription } from '@/hooks/useSubscription';
 import { toast } from 'sonner';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 
 const Premium = () => {
   const { isAuthenticated } = useAuth();
   const { subscription, loading, isSubscribed, createCheckoutSession, createPortalSession, refreshSubscription } = useSubscription();
   const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
 
   // Handle success/cancel parameters from Stripe redirect
   useEffect(() => {
     const success = searchParams.get('success');
     const canceled = searchParams.get('canceled');
+    const sessionId = searchParams.get('session_id');
 
     if (success === 'true') {
-      toast.success('Payment successful! Your premium subscription is now active.');
-      // Refresh subscription status after successful payment
-      refreshSubscription();
-      // Clean up URL parameters
-      setSearchParams({});
+      // Redirect to dedicated success page
+      if (sessionId) {
+        navigate(`/payment-success?session_id=${sessionId}`);
+      } else {
+        navigate('/payment-success');
+      }
+      return;
     } else if (canceled === 'true') {
       toast.info('Payment was canceled. You can try again anytime.');
       // Clean up URL parameters
       setSearchParams({});
     }
-  }, [searchParams, setSearchParams, refreshSubscription]);
+  }, [searchParams, setSearchParams, navigate]);
 
   const features = [
     {
