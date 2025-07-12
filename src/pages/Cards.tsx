@@ -7,7 +7,6 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '@/components/ui/pagination';
 import { pokemonApi } from '@/services/api';
 import { PokemonCard, PokemonSet } from '@/types/api';
 import { Search, Grid, List, Heart, Plus, Filter, ChevronDown, X } from 'lucide-react';
@@ -24,8 +23,6 @@ const Cards = () => {
   const [displayMode, setDisplayMode] = useState<'grid' | 'list'>('grid');
   const [sortBy, setSortBy] = useState('name');
   const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [totalCount, setTotalCount] = useState(0);
   const [selectedSets, setSelectedSets] = useState<string[]>([]);
   const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
   const [selectedRarities, setSelectedRarities] = useState<string[]>([]);
@@ -91,8 +88,6 @@ const Cards = () => {
 
       const response = await pokemonApi.getCards(params);
       setCards(response.data || []);
-      setTotalCount(response.totalCount || 0);
-      setTotalPages(Math.ceil((response.totalCount || 0) / 30));
     } catch (error) {
       console.error('Error fetching cards:', error);
       setCards([]);
@@ -147,11 +142,6 @@ const Cards = () => {
   const addToWishlist = (card: PokemonCard) => {
     setSelectedCard(card);
     setShowWishlistDialog(true);
-  };
-
-  const handlePageChange = (newPage: number) => {
-    setPage(newPage);
-    fetchCards(searchQuery, newPage);
   };
 
   if (loading) {
@@ -346,13 +336,6 @@ const Cards = () => {
             </CardContent>
           </Card>
         )}
-
-        {/* Results count */}
-        <div className="mb-4">
-          <p className="text-gray-600">
-            {totalCount} cards found {totalCount > 30 && `(showing ${Math.min(30, cards.length)} per page)`}
-          </p>
-        </div>
       </div>
 
       {/* Cards Display */}
@@ -469,41 +452,6 @@ const Cards = () => {
       {cards.length === 0 && !loading && (
         <div className="text-center py-12">
           <p className="text-gray-500 text-lg">No cards found.</p>
-        </div>
-      )}
-
-      {/* Pagination */}
-      {totalPages > 1 && (
-        <div className="mt-8">
-          <Pagination>
-            <PaginationContent>
-              {page > 1 && (
-                <PaginationItem>
-                  <PaginationPrevious onClick={() => handlePageChange(page - 1)} />
-                </PaginationItem>
-              )}
-              
-              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                const pageNum = Math.max(1, Math.min(totalPages - 4, page - 2)) + i;
-                return (
-                  <PaginationItem key={pageNum}>
-                    <PaginationLink
-                      isActive={page === pageNum}
-                      onClick={() => handlePageChange(pageNum)}
-                    >
-                      {pageNum}
-                    </PaginationLink>
-                  </PaginationItem>
-                );
-              })}
-              
-              {page < totalPages && (
-                <PaginationItem>
-                  <PaginationNext onClick={() => handlePageChange(page + 1)} />
-                </PaginationItem>
-              )}
-            </PaginationContent>
-          </Pagination>
         </div>
       )}
 

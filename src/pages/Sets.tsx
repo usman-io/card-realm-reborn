@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -6,7 +7,6 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
-import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '@/components/ui/pagination';
 import { pokemonApi } from '@/services/api';
 import { PokemonSet } from '@/types/api';
 import { Search, Calendar, Package, List } from 'lucide-react';
@@ -16,9 +16,6 @@ const Sets = () => {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [filteredSets, setFilteredSets] = useState<PokemonSet[]>([]);
-  const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [totalCount, setTotalCount] = useState(0);
   const [collectionStatus, setCollectionStatus] = useState('all');
   const [sortBy, setSortBy] = useState('series');
   const [sortOrder, setSortOrder] = useState('new-to-old');
@@ -28,16 +25,10 @@ const Sets = () => {
   // Get unique series from sets
   const [seriesList, setSeriesList] = useState<string[]>([]);
 
-  const itemsPerPage = 12;
-
   useEffect(() => {
     const fetchSets = async () => {
       try {
-        const response = await pokemonApi.getSets({ 
-          orderBy: '-releaseDate',
-          page: page.toString(),
-          pageSize: '100' // Fetch more sets for local filtering
-        });
+        const response = await pokemonApi.getSets({ orderBy: '-releaseDate' });
         setSets(response.data);
         setFilteredSets(response.data);
         
@@ -93,20 +84,8 @@ const Sets = () => {
       return 0;
     });
 
-    // Apply pagination
-    const startIndex = (page - 1) * itemsPerPage;
-    const endIndex = startIndex + itemsPerPage;
-    const paginatedSets = filtered.slice(startIndex, endIndex);
-    
-    setFilteredSets(paginatedSets);
-    setTotalCount(filtered.length);
-    setTotalPages(Math.ceil(filtered.length / itemsPerPage));
-  }, [searchQuery, sets, collectionStatus, sortBy, sortOrder, selectedSeries, page]);
-
-  const handlePageChange = (newPage: number) => {
-    setPage(newPage);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
+    setFilteredSets(filtered);
+  }, [searchQuery, sets, collectionStatus, sortBy, sortOrder, selectedSeries]);
 
   if (loading) {
     return (
@@ -157,9 +136,7 @@ const Sets = () => {
 
         {/* Results count */}
         <div className="mb-4">
-          <p className="text-gray-600">
-            {totalCount} sets found {totalCount > itemsPerPage && `(showing ${Math.min(itemsPerPage, filteredSets.length)} per page)`}
-          </p>
+          <p className="text-gray-600">{filteredSets.length} sets found</p>
         </div>
 
         {/* Sort and Display Options */}
@@ -282,41 +259,6 @@ const Sets = () => {
           </Link>
         ))}
       </div>
-
-      {/* Pagination */}
-      {totalPages > 1 && (
-        <div className="mt-8">
-          <Pagination>
-            <PaginationContent>
-              {page > 1 && (
-                <PaginationItem>
-                  <PaginationPrevious onClick={() => handlePageChange(page - 1)} />
-                </PaginationItem>
-              )}
-              
-              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                const pageNum = Math.max(1, Math.min(totalPages - 4, page - 2)) + i;
-                return (
-                  <PaginationItem key={pageNum}>
-                    <PaginationLink
-                      isActive={page === pageNum}
-                      onClick={() => handlePageChange(pageNum)}
-                    >
-                      {pageNum}
-                    </PaginationLink>
-                  </PaginationItem>
-                );
-              })}
-              
-              {page < totalPages && (
-                <PaginationItem>
-                  <PaginationNext onClick={() => handlePageChange(page + 1)} />
-                </PaginationItem>
-              )}
-            </PaginationContent>
-          </Pagination>
-        </div>
-      )}
 
       {filteredSets.length === 0 && !loading && (
         <div className="text-center py-12">

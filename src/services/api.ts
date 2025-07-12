@@ -1,267 +1,285 @@
+// API service functions
+const API_BASE_URL = 'http://localhost:8000/api';
 const POKEMON_API_BASE = 'https://api.pokemontcg.io/v2';
-const API_BASE_URL = 'http://localhost:8000';
 
+// Get Pokemon API key from environment
+const POKEMON_API_KEY = import.meta.env.VITE_POKEMON_API_KEY;
+
+// Pokemon TCG API calls
 export const pokemonApi = {
-  getCards: async (params: Record<string, string> = {}) => {
-    const url = new URL(`${POKEMON_API_BASE}/cards`);
-    Object.entries(params).forEach(([key, value]) => {
-      url.searchParams.append(key, value);
+  async getCards(params: Record<string, string> = {}) {
+    const searchParams = new URLSearchParams(params);
+    const response = await fetch(`${POKEMON_API_BASE}/cards?${searchParams}`, {
+      headers: {
+        'X-Api-Key': POKEMON_API_KEY || '',
+      },
     });
-    
-    const response = await fetch(url.toString());
-    if (!response.ok) throw new Error('Failed to fetch cards');
-    const data = await response.json();
-    return {
-      ...data,
-      totalCount: data.totalCount
-    };
-  },
-
-  getCard: async (id: string) => {
-    const response = await fetch(`${POKEMON_API_BASE}/cards/${id}`);
-    if (!response.ok) throw new Error('Failed to fetch card');
     return response.json();
   },
 
-  getSets: async (params: Record<string, string> = {}) => {
-    const url = new URL(`${POKEMON_API_BASE}/sets`);
-    Object.entries(params).forEach(([key, value]) => {
-      url.searchParams.append(key, value);
+  async getCard(id: string) {
+    const response = await fetch(`${POKEMON_API_BASE}/cards/${id}`, {
+      headers: {
+        'X-Api-Key': POKEMON_API_KEY || '',
+      },
     });
-    
-    const response = await fetch(url.toString());
-    if (!response.ok) throw new Error('Failed to fetch sets');
     return response.json();
   },
 
-  getSet: async (id: string) => {
-    const response = await fetch(`${POKEMON_API_BASE}/sets/${id}`);
-    if (!response.ok) throw new Error('Failed to fetch set');
+  async getSets(params: Record<string, string> = {}) {
+    const searchParams = new URLSearchParams(params);
+    const response = await fetch(`${POKEMON_API_BASE}/sets?${searchParams}`, {
+      headers: {
+        'X-Api-Key': POKEMON_API_KEY || '',
+      },
+    });
+    return response.json();
+  },
+
+  async getSet(id: string) {
+    const response = await fetch(`${POKEMON_API_BASE}/sets/${id}`, {
+      headers: {
+        'X-Api-Key': POKEMON_API_KEY || '',
+      },
+    });
     return response.json();
   },
 };
 
+// Backend API calls
 export const backendApi = {
-  register: async (userData: any) => {
-    const response = await fetch(`${API_BASE_URL}/api/register/`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(userData),
-    });
-    if (!response.ok) {
-      throw new Error('Registration failed');
-    }
-    return response.json();
-  },
-
-  login: async (credentials: any) => {
-    const response = await fetch(`${API_BASE_URL}/api/login/`, {
+  async login(credentials: { email: string; password: string }) {
+    const response = await fetch(`${API_BASE_URL}/auth/login/`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(credentials),
     });
-    if (!response.ok) {
-      throw new Error('Login failed');
-    }
     return response.json();
   },
 
-  getUserProfile: async (token: string) => {
-    const response = await fetch(`${API_BASE_URL}/api/profile/`, {
+  async register(userData: {
+    first_name: string;
+    last_name: string;
+    email: string;
+    password: string;
+  }) {
+    const response = await fetch(`${API_BASE_URL}/auth/register/`, {
+      method: 'POST',
       headers: {
-        'Authorization': `Bearer ${token}`,
-      },
-    });
-    if (!response.ok) {
-      throw new Error('Failed to fetch user profile');
-    }
-    return response.json();
-  },
-
-  updateUserProfile: async (token: string, userData: any) => {
-     const response = await fetch(`${API_BASE_URL}/api/profile/`, {
-      method: 'PUT',
-      headers: {
-        'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(userData),
     });
-    if (!response.ok) {
-      throw new Error('Failed to update user profile');
-    }
     return response.json();
   },
 
-  getCollection: async (token: string, page: number = 1, pageSize: number = 30) => {
-    const response = await fetch(`${API_BASE_URL}/api/collection/?page=${page}&page_size=${pageSize}`, {
+  async getProfile(token: string) {
+    const response = await fetch(`${API_BASE_URL}/auth/profile/`, {
       headers: {
-        'Authorization': `Bearer ${token}`,
+        'Authorization': `Token ${token}`,
       },
     });
-    if (!response.ok) {
-      throw new Error('Failed to fetch collection');
-    }
     return response.json();
   },
 
-  addToCollection: async (token: string, cardId: string, quantity: number) => {
-    const response = await fetch(`${API_BASE_URL}/api/collection/add/`, {
+  async addToCollection(token: string, cardData: {
+    card_id: string;
+    quantity: number;
+    condition: string;
+    variant?: string;
+    language?: string;
+    is_graded?: boolean;
+    notes?: string;
+  }) {
+    const response = await fetch(`${API_BASE_URL}/collection/`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json',
+        'Authorization': `Token ${token}`,
       },
-      body: JSON.stringify({ card_id: cardId, quantity: quantity }),
+      body: JSON.stringify(cardData),
     });
-    if (!response.ok) {
-      throw new Error('Failed to add to collection');
-    }
     return response.json();
   },
 
-  updateCollectionItem: async (token: string, collectionId: number, quantity: number) => {
-    const response = await fetch(`${API_BASE_URL}/api/collection/update/${collectionId}/`, {
-      method: 'PUT',
+  async getCollection(token: string, params: Record<string, string> = {}) {
+    const searchParams = new URLSearchParams(params);
+    const url = `${API_BASE_URL}/collection/${searchParams.toString() ? '?' + searchParams.toString() : ''}`;
+    const response = await fetch(url, {
       headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json',
+        'Authorization': `Token ${token}`,
       },
-      body: JSON.stringify({ quantity: quantity }),
     });
-    if (!response.ok) {
-      throw new Error('Failed to update collection item');
-    }
     return response.json();
   },
 
-  deleteCollectionItem: async (token: string, collectionId: number) => {
-    const response = await fetch(`${API_BASE_URL}/api/collection/delete/${collectionId}/`, {
+  async updateCollectionItem(token: string, id: number, data: any) {
+    const response = await fetch(`${API_BASE_URL}/collection/${id}/`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Token ${token}`,
+      },
+      body: JSON.stringify(data),
+    });
+    return response.json();
+  },
+
+  async deleteCollectionItem(token: string, id: number) {
+    const response = await fetch(`${API_BASE_URL}/collection/${id}/`, {
       method: 'DELETE',
       headers: {
-        'Authorization': `Bearer ${token}`,
+        'Authorization': `Token ${token}`,
       },
     });
-    if (!response.ok) {
-      throw new Error('Failed to delete collection item');
-    }
-    return response.json();
+    return response.ok;
   },
 
-  getWishlist: async (token: string) => {
-    const response = await fetch(`${API_BASE_URL}/api/wishlist/`, {
-      headers: {
-        'Authorization': `Bearer ${token}`,
-      },
-    });
-    if (!response.ok) {
-      throw new Error('Failed to fetch wishlist');
-    }
-    return response.json();
-  },
-
-  addToWishlist: async (token: string, cardId: string) => {
-    const response = await fetch(`${API_BASE_URL}/api/wishlist/add/`, {
+  async addToWishlist(token: string, cardData: {
+    card_id: string;
+    priority: string;
+    notes?: string;
+  }) {
+    const response = await fetch(`${API_BASE_URL}/wishlist/`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json',
+        'Authorization': `Token ${token}`,
       },
-      body: JSON.stringify({ card_id: cardId }),
+      body: JSON.stringify(cardData),
     });
-    if (!response.ok) {
-      throw new Error('Failed to add to wishlist');
-    }
     return response.json();
   },
 
-  deleteWishlistItem: async (token: string, wishlistItemId: number) => {
-    const response = await fetch(`${API_BASE_URL}/api/wishlist/delete/${wishlistItemId}/`, {
+  async getWishlist(token: string, params: Record<string, string> = {}) {
+    const searchParams = new URLSearchParams(params);
+    const url = `${API_BASE_URL}/wishlist/${searchParams.toString() ? '?' + searchParams.toString() : ''}`;
+    const response = await fetch(url, {
+      headers: {
+        'Authorization': `Token ${token}`,
+      },
+    });
+    return response.json();
+  },
+
+  async updateWishlistItem(token: string, id: number, data: any) {
+    const response = await fetch(`${API_BASE_URL}/wishlist/${id}/`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Token ${token}`,
+      },
+      body: JSON.stringify(data),
+    });
+    return response.json();
+  },
+
+  async deleteWishlistItem(token: string, id: number) {
+    const response = await fetch(`${API_BASE_URL}/wishlist/${id}/`, {
       method: 'DELETE',
       headers: {
-        'Authorization': `Bearer ${token}`,
+        'Authorization': `Token ${token}`,
       },
     });
-    if (!response.ok) {
-      throw new Error('Failed to delete wishlistItem');
-    }
-    return response.json();
+    return response.ok;
   },
 
-  getDashboardAnalytics: async (token: string) => {
-    const response = await fetch(`${API_BASE_URL}/api/dashboard-analytics/`, {
-      headers: {
-        'Authorization': `Bearer ${token}`,
-      },
-    });
-    if (!response.ok) {
-      throw new Error('Failed to fetch dashboard analytics');
-    }
-    return response.json();
-  },
-
-  getSubscription: async (token: string) => {
-    const response = await fetch(`${API_BASE_URL}/api/subscription/`, {
-      headers: {
-        'Authorization': `Bearer ${token}`,
-      },
-    });
-    if (!response.ok) {
-      throw new Error('Failed to fetch subscription');
-    }
-    return response.json();
-  },
-
-  createCheckoutSession: async (token: string, plan: 'monthly' | 'yearly') => {
-    const response = await fetch(`${API_BASE_URL}/api/create-checkout-session/`, {
+  async addCardNote(token: string, cardData: {
+    card_id: string;
+    note: string;
+  }) {
+    const response = await fetch(`${API_BASE_URL}/notes/`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json',
+        'Authorization': `Token ${token}`,
+      },
+      body: JSON.stringify(cardData),
+    });
+    return response.json();
+  },
+
+  async getCardNotes(token: string, params: Record<string, string> = {}) {
+    const searchParams = new URLSearchParams(params);
+    const url = `${API_BASE_URL}/notes/${searchParams.toString() ? '?' + searchParams.toString() : ''}`;
+    const response = await fetch(url, {
+      headers: {
+        'Authorization': `Token ${token}`,
+      },
+    });
+    return response.json();
+  },
+
+  async updateCardNote(token: string, id: number, data: any) {
+    const response = await fetch(`${API_BASE_URL}/notes/${id}/`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Token ${token}`,
+      },
+      body: JSON.stringify(data),
+    });
+    return response.json();
+  },
+
+  async deleteCardNote(token: string, id: number) {
+    const response = await fetch(`${API_BASE_URL}/notes/${id}/`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Token ${token}`,
+      },
+    });
+    return response.ok;
+  },
+
+  async getCollectionStats(token: string) {
+    const response = await fetch(`${API_BASE_URL}/collection/stats/`, {
+      headers: {
+        'Authorization': `Token ${token}`,
+      },
+    });
+    return response.json();
+  },
+
+  async getDashboardAnalytics(token: string) {
+    const response = await fetch(`${API_BASE_URL}/dashboard/analytics/`, {
+      headers: {
+        'Authorization': `Token ${token}`,
+      },
+    });
+    return response.json();
+  },
+
+  async getSubscription(token: string) {
+    const response = await fetch(`${API_BASE_URL}/subscription/`, {
+      headers: {
+        'Authorization': `Token ${token}`,
+      },
+    });
+    return response.json();
+  },
+
+  async createCheckoutSession(token: string, plan: 'monthly' | 'yearly') {
+    const response = await fetch(`${API_BASE_URL}/create-checkout-session/`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Token ${token}`,
       },
       body: JSON.stringify({ plan }),
     });
-    
-    if (!response.ok) {
-      throw new Error('Failed to create checkout session');
-    }
-    
     return response.json();
   },
 
-  createPortalSession: async (token: string) => {
-    const response = await fetch(`${API_BASE_URL}/api/create-portal-session/`, {
+  async createPortalSession(token: string) {
+    const response = await fetch(`${API_BASE_URL}/create-portal-session/`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json',
+        'Authorization': `Token ${token}`,
       },
     });
-    
-    if (!response.ok) {
-      throw new Error('Failed to create portal session');
-    }
-    
-    return response.json();
-  },
-
-  cancelSubscription: async (token: string) => {
-    const response = await fetch(`${API_BASE_URL}/api/cancel-subscription/`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
-    });
-    
-    if (!response.ok) {
-      throw new Error('Failed to cancel subscription');
-    }
-    
     return response.json();
   },
 };

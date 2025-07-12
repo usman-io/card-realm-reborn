@@ -46,19 +46,19 @@ const PaymentSuccess = () => {
             
             <div className="space-y-3">
               <Button 
-                onClick={() => navigate('/premium')} 
+                onClick={() => navigate('/dashboard')} 
                 className="w-full"
               >
-                Done
+                Go to Dashboard
                 <ArrowRight className="w-4 h-4 ml-2" />
               </Button>
               
               <Button 
-                onClick={() => navigate('/dashboard')} 
+                onClick={() => navigate('/premium')} 
                 variant="outline"
                 className="w-full"
               >
-                Go to Dashboard
+                View Premium Features
               </Button>
             </div>
           </CardContent>

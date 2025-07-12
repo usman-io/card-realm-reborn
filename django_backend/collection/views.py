@@ -1,132 +1,198 @@
+
 from rest_framework import generics, permissions, status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
-from rest_framework.pagination import PageNumberPagination
-from django.db.models import Count, Avg
-from .models import Collection, CardNote
-from .serializers import CollectionSerializer, CardNoteSerializer
+from django.db.models import Count, Q
+from .models import Collection, Wishlist, CardNote
+from .serializers import CollectionSerializer, WishlistSerializer, CardNoteSerializer
 from subscriptions.models import Subscription
-import requests
-from django.conf import settings
 
-class CustomPageNumberPagination(PageNumberPagination):
-    page_size = 30
-    page_size_query_param = 'page_size'
-    max_page_size = 100
+class CollectionListCreateView(generics.ListCreateAPIView):
+    serializer_class = CollectionSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        return Collection.objects.filter(user=self.request.user)
+
+    def perform_create(self, serializer):
+        # Check subscription limits for free users
+        user_subscription = None
+        try:
+            user_subscription = Subscription.objects.get(user=self.request.user)
+        except Subscription.DoesNotExist:
+            pass
+
+        # If user doesn't have active subscription (free plan), enforce 100 card limit
+        if not user_subscription or not user_subscription.is_active:
+            current_count = Collection.objects.filter(user=self.request.user).aggregate(
+                total=Count('id')
+            )['total'] or 0
+            
+            if current_count >= 100:
+                return Response(
+                    {'error': 'Free plan limited to 100 cards. Upgrade to Premium for unlimited cards.'},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+
+        serializer.save(user=self.request.user)
+
+class CollectionDetailView(generics.RetrieveUpdateDestroyAPIView):
+    serializer_class = CollectionSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        return Collection.objects.filter(user=self.request.user)
+
+class WishlistListCreateView(generics.ListCreateAPIView):
+    serializer_class = WishlistSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        return Wishlist.objects.filter(user=self.request.user)
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
+
+class WishlistDetailView(generics.RetrieveUpdateDestroyAPIView):
+    serializer_class = WishlistSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        return Wishlist.objects.filter(user=self.request.user)
+
+class CardNoteListCreateView(generics.ListCreateAPIView):
+    serializer_class = CardNoteSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        return CardNote.objects.filter(user=self.request.user)
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
+
+class CardNoteDetailView(generics.RetrieveUpdateDestroyAPIView):
+    serializer_class = CardNoteSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        return CardNote.objects.filter(user=self.request.user)
 
 @api_view(['GET'])
 @permission_classes([permissions.IsAuthenticated])
-def dashboard_analytics(request):
-    user = request.user
-    
-    # Total cards collected
-    total_cards = Collection.objects.filter(user=user).count()
-    
-    # Total sets completed (example - you might need a different logic)
-    total_sets = Collection.objects.filter(user=user).values('card__set').distinct().count()
-    
-    # Average card condition (assuming you have a condition field)
-    average_condition = Collection.objects.filter(user=user).aggregate(Avg('condition'))['condition__avg'] or 0
-    
-    # Most common card type
-    most_common_type = Collection.objects.filter(user=user).values('card__types').annotate(count=Count('card__types')).order_by('-count').first()
-    most_common_type_name = most_common_type['card__types'] if most_common_type else "N/A"
-    
-    # Latest cards added (last 5)
-    latest_cards = Collection.objects.filter(user=user).order_by('-created_at')[:5]
-    latest_cards_data = CollectionSerializer(latest_cards, many=True).data
+def collection_stats(request):
+    """Get collection statistics for the authenticated user"""
+    collection_count = Collection.objects.filter(user=request.user).count()
+    unique_cards = Collection.objects.filter(user=request.user).values('card_id').distinct().count()
+    wishlist_count = Wishlist.objects.filter(user=request.user).count()
     
     return Response({
-        'total_cards': total_cards,
-        'total_sets': total_sets,
-        'average_condition': average_condition,
-        'most_common_type': most_common_type_name,
-        'latest_cards': latest_cards_data,
+        'total_cards': collection_count,
+        'unique_cards': unique_cards,
+        'wishlist_count': wishlist_count,
     })
 
 @api_view(['GET'])
 @permission_classes([permissions.IsAuthenticated])
-def user_collection(request):
-    page = request.GET.get('page', 1)
-    page_size = min(int(request.GET.get('page_size', 30)), 100)
+def dashboard_analytics(request):
+    """Get comprehensive dashboard analytics with subscription-aware features"""
+    user = request.user
     
-    collections = Collection.objects.filter(user=request.user).order_by('-created_at')
-    
-    # Apply pagination
-    paginator = CustomPageNumberPagination()
-    paginator.page_size = page_size
-    result_page = paginator.paginate_queryset(collections, request)
-    
-    serializer = CollectionSerializer(result_page, many=True)
-    return paginator.get_paginated_response(serializer.data)
-
-@api_view(['POST'])
-@permission_classes([permissions.IsAuthenticated])
-def add_to_collection(request):
-    serializer = CollectionSerializer(data=request.data)
-    if serializer.is_valid():
-        serializer.save(user=request.user)
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
-    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-@api_view(['GET', 'PUT', 'DELETE'])
-@permission_classes([permissions.IsAuthenticated])
-def collection_detail(request, pk):
+    # Get user subscription status
+    user_subscription = None
+    is_premium = False
     try:
-        collection = Collection.objects.get(pk=pk, user=request.user)
-    except Collection.DoesNotExist:
-        return Response(status=status.HTTP_404_NOT_FOUND)
+        user_subscription = Subscription.objects.get(user=user)
+        is_premium = user_subscription.is_active
+    except Subscription.DoesNotExist:
+        pass
 
-    if request.method == 'GET':
-        serializer = CollectionSerializer(collection)
-        return Response(serializer.data)
+    # Basic analytics available to all users
+    collection_items = Collection.objects.filter(user=user)
+    total_cards = collection_items.count()
+    unique_cards = collection_items.values('card_id').distinct().count()
+    wishlist_count = Wishlist.objects.filter(user=user).count()
+    graded_cards = collection_items.filter(is_graded=True).count()
 
-    elif request.method == 'PUT':
-        serializer = CollectionSerializer(collection, data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    # Calculate usage percentage for free users
+    usage_percentage = 0
+    cards_remaining = 0
+    if not is_premium:
+        usage_percentage = min((total_cards / 100) * 100, 100)
+        cards_remaining = max(100 - total_cards, 0)
 
-    elif request.method == 'DELETE':
-        collection.delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
+    # Advanced analytics only for premium users
+    estimated_value = 0
+    completion_rate = 0
+    sets_completed = {
+        'any_variant': 0,
+        'regular_variants': 0,
+        'all_variants': 0,
+        'standard_set': 0,
+        'parallel_set': 0,
+    }
+    
+    if is_premium:
+        # Premium users get advanced analytics
+        # For now, using placeholder values - can be enhanced with real calculations
+        estimated_value = total_cards * 2.5  # Placeholder calculation
+        completion_rate = min((unique_cards / max(total_cards, 1)) * 100, 100)
 
-@api_view(['GET'])
-@permission_classes([permissions.IsAuthenticated])
-def card_notes(request, card_id):
-    notes = CardNote.objects.filter(user=request.user, card_id=card_id)
-    serializer = CardNoteSerializer(notes, many=True)
-    return Response(serializer.data)
+    # Card type breakdown
+    card_types = {
+        'pokemon': unique_cards * 0.7,  # Approximate breakdown
+        'trainer': unique_cards * 0.2,
+        'energy': unique_cards * 0.1,
+    }
 
-@api_view(['POST'])
-@permission_classes([permissions.IsAuthenticated])
-def add_card_note(request):
-    serializer = CardNoteSerializer(data=request.data)
-    if serializer.is_valid():
-        serializer.save(user=request.user)
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
-    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    # Card rarity breakdown (placeholder data)
+    card_rarities = {
+        'common': unique_cards * 0.4,
+        'uncommon': unique_cards * 0.3,
+        'rare': unique_cards * 0.2,
+        'ultra_rare': unique_cards * 0.1,
+    }
 
-@api_view(['GET', 'PUT', 'DELETE'])
-@permission_classes([permissions.IsAuthenticated])
-def card_note_detail(request, pk):
-    try:
-        note = CardNote.objects.get(pk=pk, user=request.user)
-    except CardNote.DoesNotExist:
-        return Response(status=status.HTTP_404_NOT_FOUND)
+    # Recent activity
+    recent_collection = collection_items.order_by('-added_date')[:5]
+    recent_wishlist = Wishlist.objects.filter(user=user).order_by('-added_date')[:3]
+    
+    recent_activity = []
+    for item in recent_collection:
+        recent_activity.append({
+            'type': 'collection_add',
+            'card_id': item.card_id,
+            'date': item.added_date.isoformat(),
+            'message': f'Added {item.quantity}x card {item.card_id} to collection',
+            'quantity': item.quantity,
+            'variant': item.variant,
+            'condition': item.condition,
+        })
+    
+    for item in recent_wishlist:
+        recent_activity.append({
+            'type': 'wishlist_add',
+            'card_id': item.card_id,
+            'date': item.added_date.isoformat(),
+            'message': f'Added card {item.card_id} to wishlist',
+            'priority': item.priority,
+        })
+    
+    # Sort by date
+    recent_activity.sort(key=lambda x: x['date'], reverse=True)
 
-    if request.method == 'GET':
-        serializer = CardNoteSerializer(note)
-        return Response(serializer.data)
-
-    elif request.method == 'PUT':
-        serializer = CardNoteSerializer(note, data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-    elif request.method == 'DELETE':
-        note.delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
+    return Response({
+        'total_cards': total_cards,
+        'unique_cards': unique_cards,
+        'wishlist_count': wishlist_count,
+        'graded_cards': graded_cards,
+        'estimated_value': estimated_value if is_premium else 0,
+        'completion_rate': completion_rate,
+        'is_premium': is_premium,
+        'usage_percentage': usage_percentage,
+        'cards_remaining': cards_remaining,
+        'plan_name': user_subscription.plan if user_subscription and is_premium else 'Free',
+        'sets_completed': sets_completed,
+        'card_types': card_types,
+        'card_rarities': card_rarities,
+        'recent_activity': recent_activity[:10],
+    })
