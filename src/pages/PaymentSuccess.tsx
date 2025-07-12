@@ -14,21 +14,10 @@ const PaymentSuccess = () => {
   const sessionId = searchParams.get('session_id');
 
   useEffect(() => {
-    console.log('PaymentSuccess page loaded with session_id:', sessionId);
     // Refresh subscription status when component mounts
     refreshSubscription();
     toast.success('Payment successful! Your premium subscription is now active.');
-  }, [refreshSubscription, sessionId]);
-
-  const handleDone = () => {
-    console.log('Done button clicked, navigating to premium page');
-    navigate('/premium');
-  };
-
-  const handleDashboard = () => {
-    console.log('Dashboard button clicked, navigating to dashboard');
-    navigate('/dashboard');
-  };
+  }, [refreshSubscription]);
 
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
@@ -57,7 +46,7 @@ const PaymentSuccess = () => {
             
             <div className="space-y-3">
               <Button 
-                onClick={handleDone} 
+                onClick={() => navigate('/premium')} 
                 className="w-full"
               >
                 Done
@@ -65,7 +54,7 @@ const PaymentSuccess = () => {
               </Button>
               
               <Button 
-                onClick={handleDashboard} 
+                onClick={() => navigate('/dashboard')} 
                 variant="outline"
                 className="w-full"
               >

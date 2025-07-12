@@ -1,3 +1,4 @@
+
 from rest_framework import generics, permissions, status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
@@ -40,7 +41,7 @@ def create_checkout_session(request):
         # Check if user already has an active subscription
         try:
             existing_subscription = Subscription.objects.get(user=request.user)
-            if existing_subscription.status == 'active':
+            if existing_subscription.is_active:
                 logger.warning(f"User {request.user.email} already has an active subscription.")
                 return Response({'error': 'User already has an active subscription'}, status=400)
         except Subscription.DoesNotExist:
@@ -126,24 +127,18 @@ def cancel_subscription(request):
     try:
         # Get user's active subscription
         try:
-            subscription = Subscription.objects.get(user=request.user, status='active')
+            subscription = Subscription.objects.get(user=request.user, is_active=True)
         except Subscription.DoesNotExist:
             return Response({'error': 'No active subscription found'}, status=404)
 
-        # Cancel the Stripe subscription at period end to allow access until end of billing period
-        if subscription.stripe_subscription_id:
-            stripe_subscription = stripe.Subscription.modify(
-                subscription.stripe_subscription_id,
-                cancel_at_period_end=True
-            )
-            logger.info(f"Stripe subscription {subscription.stripe_subscription_id} set to cancel at period end")
+        # Cancel the Stripe subscription
+        stripe.Subscription.delete(subscription.stripe_subscription_id)
 
-        # Update local subscription status
-        subscription.status = 'canceled'
+        # Update local subscription
+        subscription.is_active = False
         subscription.save()
-        logger.info(f"Local subscription {subscription.id} marked as canceled")
 
-        return Response({'message': 'Subscription canceled successfully. Access will continue until the end of your billing period.'})
+        return Response({'message': 'Subscription canceled successfully'})
 
     except Exception as e:
         logger.error(f"Error canceling subscription: {str(e)}")

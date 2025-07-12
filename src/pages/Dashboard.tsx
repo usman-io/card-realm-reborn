@@ -1,32 +1,16 @@
 
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { backendApi, pokemonApi } from '@/services/api';
-import { Collection, Wishlist, Activity, PokemonCard } from '@/types/api';
-import { 
-  TrendingUp, 
-  Package, 
-  Heart, 
-  Clock, 
-  Star,
-  Plus,
-  Eye,
-  Users,
-  Trophy,
-  ArrowRight
-} from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-
-interface DashboardStats {
-  total_cards: number;
-  total_value: number;
-  total_sets: number;
-  recent_additions: number;
-}
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { UsageCard } from '@/components/UsageCard';
+import { PremiumFeatureGate } from '@/components/PremiumFeatureGate';
+import { backendApi, pokemonApi } from '@/services/api';
+import { Collection, Wishlist, DashboardAnalytics, PokemonCard } from '@/types/api';
+import { Edit, Trash2, ChevronRight, Trophy, BarChart3, Heart, Copy, Award, Clock, Crown, TrendingUp, DollarSign, Eye } from 'lucide-react';
 
 interface CollectionWithCard extends Collection {
   cardData?: PokemonCard;
@@ -39,10 +23,9 @@ interface WishlistWithCard extends Wishlist {
 const Dashboard = () => {
   const { user, token } = useAuth();
   const navigate = useNavigate();
-  const [stats, setStats] = useState<DashboardStats | null>(null);
-  const [recentCollectionCards, setRecentCollectionCards] = useState<CollectionWithCard[]>([]);
-  const [recentWishlistCards, setRecentWishlistCards] = useState<WishlistWithCard[]>([]);
-  const [recentActivities, setRecentActivities] = useState<Activity[]>([]);
+  const [collection, setCollection] = useState<CollectionWithCard[]>([]);
+  const [wishlist, setWishlist] = useState<WishlistWithCard[]>([]);
+  const [analytics, setAnalytics] = useState<DashboardAnalytics | null>(null);
   const [loading, setLoading] = useState(true);
 
   const fetchCardData = async (cardId: string): Promise<PokemonCard | null> => {
@@ -55,104 +38,80 @@ const Dashboard = () => {
     }
   };
 
-  const fetchDashboardData = async () => {
+  useEffect(() => {
+    const fetchData = async () => {
+      if (!token) {
+        setLoading(false);
+        return;
+      }
+
+      try {
+        setLoading(true);
+        
+        const [collectionResponse, wishlistResponse, analyticsResponse] = await Promise.all([
+          backendApi.getCollection(token, { limit: '4', ordering: '-added_date' }),
+          backendApi.getWishlist(token, { limit: '4', ordering: '-added_date' }),
+          backendApi.getDashboardAnalytics(token)
+        ]);
+
+        // Fetch card data for recent collection items
+        const collectionArray = Array.isArray(collectionResponse) ? collectionResponse : [];
+        const collectionWithCards = await Promise.all(
+          collectionArray.slice(0, 4).map(async (item) => {
+            const cardData = await fetchCardData(item.card_id);
+            return { ...item, cardData };
+          })
+        );
+
+        // Fetch card data for recent wishlist items
+        const wishlistArray = Array.isArray(wishlistResponse) ? wishlistResponse : [];
+        const wishlistWithCards = await Promise.all(
+          wishlistArray.slice(0, 4).map(async (item) => {
+            const cardData = await fetchCardData(item.card_id);
+            return { ...item, cardData };
+          })
+        );
+
+        setCollection(collectionWithCards);
+        setWishlist(wishlistWithCards);
+        setAnalytics(analyticsResponse);
+      } catch (error) {
+        console.error('Error fetching dashboard data:', error);
+        setCollection([]);
+        setWishlist([]);
+        setAnalytics(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [token]);
+
+  const handleDeleteCollection = async (id: number) => {
     if (!token) return;
-
+    
     try {
-      setLoading(true);
-
-      // Fetch stats
-      const statsData = await backendApi.getCollectionStats(token);
-      setStats(statsData);
-
-      // Fetch recent collection cards (limit 4)
-      const collectionResponse = await backendApi.getUserCollectionCards(token, { 
-        page: '1',
-        ordering: '-added_date'
-      });
-      
-      const recentCollection = collectionResponse.results.slice(0, 4);
-      const collectionWithCards = await Promise.all(
-        recentCollection.map(async (item: Collection) => {
-          const cardData = await fetchCardData(item.card_id);
-          return { ...item, cardData };
-        })
-      );
-      setRecentCollectionCards(collectionWithCards);
-
-      // Fetch recent wishlist cards (limit 4)
-      const wishlistResponse = await backendApi.getUserWishlistCards(token, { 
-        page: '1',
-        ordering: '-added_date'
-      });
-      
-      const recentWishlist = wishlistResponse.results.slice(0, 4);
-      const wishlistWithCards = await Promise.all(
-        recentWishlist.map(async (item: Wishlist) => {
-          const cardData = await fetchCardData(item.card_id);
-          return { ...item, cardData };
-        })
-      );
-      setRecentWishlistCards(wishlistWithCards);
-
-      // Fetch recent activities (limit 5)
-      const activitiesData = await backendApi.getUserActivities(token, { 
-        page: '1',
-        page_size: '5'
-      });
-      setRecentActivities(activitiesData.results || []);
-
+      await backendApi.deleteCollectionItem(token, id);
+      setCollection(prev => prev.filter(item => item.id !== id));
     } catch (error) {
-      console.error('Error fetching dashboard data:', error);
-    } finally {
-      setLoading(false);
+      console.error('Error deleting collection item:', error);
     }
   };
 
-  useEffect(() => {
-    fetchDashboardData();
-  }, [token]);
-
-  const quickAccessItems = [
-    {
-      title: 'Browse Cards',
-      description: 'Explore and search Pokemon cards',
-      icon: <Package className="h-6 w-6" />,
-      path: '/cards',
-      color: 'bg-blue-50 text-blue-600'
-    },
-    {
-      title: 'View Sets',
-      description: 'Browse card sets and expansions',
-      icon: <Star className="h-6 w-6" />,
-      path: '/sets',
-      color: 'bg-purple-50 text-purple-600'
-    },
-    {
-      title: 'Cards in Collection',
-      description: 'View all your collected cards',
-      icon: <Package className="h-6 w-6" />,
-      path: '/dashboard/collection',
-      color: 'bg-green-50 text-green-600'
-    },
-    {
-      title: 'Cards in Wishlist',
-      description: 'View all your wishlist cards',
-      icon: <Heart className="h-6 w-6" />,
-      path: '/dashboard/wishlist',
-      color: 'bg-red-50 text-red-600'
-    },
-    {
-      title: 'Graded Cards',
-      description: 'View all your graded cards',
-      icon: <Trophy className="h-6 w-6" />,
-      path: '/dashboard/graded',
-      color: 'bg-yellow-50 text-yellow-600'
+  const handleDeleteWishlist = async (id: number) => {
+    if (!token) return;
+    
+    try {
+      await backendApi.deleteWishlistItem(token, id);
+      setWishlist(prev => prev.filter(item => item.id !== id));
+    } catch (error) {
+      console.error('Error deleting wishlist item:', error);
     }
-  ];
+  };
 
-  const handleViewAllActivities = () => {
-    navigate('/dashboard/activities');
+  const handleQuickAccess = (type: string) => {
+    navigate(`/dashboard/${type}`);
   };
 
   if (loading) {
@@ -165,261 +124,456 @@ const Dashboard = () => {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      {/* Welcome Section */}
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900">
-          Welcome back, {user?.first_name || 'Collector'}! 👋
+          Welcome back, {user?.first_name}!
         </h1>
         <p className="text-gray-600 mt-2">
-          Here's what's happening with your collection today.
+          Here's an overview of your Pokémon card collection
         </p>
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <UsageCard
+          isPremium={analytics?.is_premium || false}
+          totalCards={analytics?.total_cards || 0}
+          usagePercentage={analytics?.usage_percentage || 0}
+          cardsRemaining={analytics?.cards_remaining || 0}
+          planName={analytics?.plan_name || 'Free'}
+        />
+
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Cards</CardTitle>
-            <Package className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">Wishlist Items</CardTitle>
+            <Badge variant="secondary">🎯</Badge>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats?.total_cards || 0}</div>
+            <div className="text-2xl font-bold">{analytics?.wishlist_count || 0}</div>
             <p className="text-xs text-muted-foreground">
-              In your collection
+              Cards you want to collect
             </p>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Collection Value</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">${stats?.total_value || 0}</div>
-            <p className="text-xs text-muted-foreground">
-              Estimated value
-            </p>
-          </CardContent>
-        </Card>
+        <PremiumFeatureGate
+          isPremium={analytics?.is_premium || false}
+          featureName="Collection Value"
+          featureDescription="Track the estimated market value of your collection with premium analytics."
+        >
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Collection Value</CardTitle>
+              <Badge variant="secondary">💰</Badge>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">${analytics?.estimated_value?.toFixed(2) || '0.00'}</div>
+              <p className="text-xs text-muted-foreground">
+                Estimated market value
+              </p>
+            </CardContent>
+          </Card>
+        </PremiumFeatureGate>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Unique Sets</CardTitle>
-            <Star className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats?.total_sets || 0}</div>
-            <p className="text-xs text-muted-foreground">
-              Different sets collected
-            </p>
-          </CardContent>
-        </Card>
+        <PremiumFeatureGate
+          isPremium={analytics?.is_premium || false}
+          featureName="Advanced Analytics"
+          featureDescription="Get detailed completion rates and collection insights with premium analytics."
+        >
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Completion Rate</CardTitle>
+              <Badge variant="secondary">📈</Badge>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{analytics?.completion_rate || 0}%</div>
+              <p className="text-xs text-muted-foreground">
+                Overall collection progress
+              </p>
+            </CardContent>
+          </Card>
+        </PremiumFeatureGate>
+      </div>
 
+      {/* Premium Analytics Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+        <PremiumFeatureGate
+          isPremium={analytics?.is_premium || false}
+          featureName="Sets Completed"
+          featureDescription="Track your collection progress across different sets and variants."
+        >
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Trophy className="h-5 w-5 text-orange-500" />
+                Sets completed
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Trophy className="h-4 w-4" />
+                  <span>Any card variant</span>
+                </div>
+                <Badge variant="secondary">{analytics?.sets_completed.any_variant || 0}</Badge>
+              </div>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Trophy className="h-4 w-4" />
+                  <span>Regular card variants</span>
+                </div>
+                <Badge variant="secondary">{analytics?.sets_completed.regular_variants || 0}</Badge>
+              </div>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Trophy className="h-4 w-4" />
+                  <span>All card variants</span>
+                </div>
+                <Badge variant="secondary">{analytics?.sets_completed.all_variants || 0}</Badge>
+              </div>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="text-orange-500">📦</span>
+                  <span>Standard set</span>
+                </div>
+                <Badge variant="secondary">{analytics?.sets_completed.standard_set || 0}</Badge>
+              </div>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="text-blue-500">📦</span>
+                  <span>Parallel set</span>
+                </div>
+                <Badge variant="secondary">{analytics?.sets_completed.parallel_set || 0}</Badge>
+              </div>
+            </CardContent>
+          </Card>
+        </PremiumFeatureGate>
+
+        {/* Quick Access - Available to all users */}
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Recent Additions</CardTitle>
-            <Plus className="h-4 w-4 text-muted-foreground" />
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <span className="text-orange-500">📁</span>
+              Quick access
+            </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats?.recent_additions || 0}</div>
-            <p className="text-xs text-muted-foreground">
-              This month
-            </p>
+          <CardContent className="space-y-4">
+            <div 
+              className="flex items-center justify-between cursor-pointer hover:bg-gray-50 p-2 rounded"
+              onClick={() => handleQuickAccess('collection')}
+            >
+              <div className="flex items-center gap-2">
+                <BarChart3 className="h-4 w-4" />
+                <span>Cards in collection</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Badge variant="outline">{analytics?.total_cards || 0}</Badge>
+                <ChevronRight className="h-4 w-4" />
+              </div>
+            </div>
+            <div 
+              className="flex items-center justify-between cursor-pointer hover:bg-gray-50 p-2 rounded"
+              onClick={() => handleQuickAccess('wishlist')}
+            >
+              <div className="flex items-center gap-2">
+                <Heart className="h-4 w-4" />
+                <span>Cards in wishlist</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Badge variant="outline">{analytics?.wishlist_count || 0}</Badge>
+                <ChevronRight className="h-4 w-4" />
+              </div>
+            </div>
+            {analytics?.is_premium && (
+              <>
+                <div 
+                  className="flex items-center justify-between cursor-pointer hover:bg-gray-50 p-2 rounded"
+                  onClick={() => handleQuickAccess('graded')}
+                >
+                  <div className="flex items-center gap-2">
+                    <Award className="h-4 w-4" />
+                    <span>Graded cards</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline">{analytics?.graded_cards || 0}</Badge>
+                    <ChevronRight className="h-4 w-4" />
+                  </div>
+                </div>
+                <div className="flex items-center justify-between cursor-pointer hover:bg-gray-50 p-2 rounded">
+                  <div className="flex items-center gap-2">
+                    <DollarSign className="h-4 w-4" />
+                    <span>Estimated value</span>
+                  </div>
+                  <Badge variant="outline">${analytics?.estimated_value?.toFixed(2) || '0.00'}</Badge>
+                </div>
+              </>
+            )}
           </CardContent>
         </Card>
       </div>
 
-      {/* Quick Access */}
-      <Card className="mb-8">
-        <CardHeader>
-          <CardTitle>Quick Access</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {quickAccessItems.map((item, index) => (
-              <div
-                key={index}
-                onClick={() => navigate(item.path)}
-                className="flex items-center p-4 rounded-lg border hover:shadow-md transition-shadow cursor-pointer"
-              >
-                <div className={`p-2 rounded-lg mr-4 ${item.color}`}>
-                  {item.icon}
-                </div>
-                <div>
-                  <h3 className="font-medium">{item.title}</h3>
-                  <p className="text-sm text-gray-600">{item.description}</p>
-                </div>
+      {/* Card Statistics - Premium Feature */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+        <PremiumFeatureGate
+          isPremium={analytics?.is_premium || false}
+          featureName="Card Type Analytics"
+          featureDescription="Get detailed breakdowns of your collection by card types and rarities."
+        >
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <BarChart3 className="h-5 w-5 text-orange-500" />
+                Unique cards per type
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between">
+                <span>Pokémon</span>
+                <Badge variant="secondary">{Math.floor(analytics?.card_types.pokemon || 0)}</Badge>
               </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+              <div className="flex items-center justify-between">
+                <span>Trainer</span>
+                <Badge variant="secondary">{Math.floor(analytics?.card_types.trainer || 0)}</Badge>
+              </div>
+              <div className="flex items-center justify-between">
+                <span>Energy</span>
+                <Badge variant="secondary">{Math.floor(analytics?.card_types.energy || 0)}</Badge>
+              </div>
+            </CardContent>
+          </Card>
+        </PremiumFeatureGate>
+
+        <PremiumFeatureGate
+          isPremium={analytics?.is_premium || false}
+          featureName="Rarity Analytics"
+          featureDescription="Track the rarity distribution of cards in your collection."
+        >
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <BarChart3 className="h-5 w-5 text-orange-500" />
+                Unique cards per rarity
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="text-gray-500">●</span>
+                  <span>Common</span>
+                </div>
+                <Badge variant="secondary">{Math.floor(analytics?.card_rarities.common || 0)}</Badge>
+              </div>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="text-green-500">●</span>
+                  <span>Uncommon</span>
+                </div>
+                <Badge variant="secondary">{Math.floor(analytics?.card_rarities.uncommon || 0)}</Badge>
+              </div>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="text-blue-500">●</span>
+                  <span>Rare</span>
+                </div>
+                <Badge variant="secondary">{Math.floor(analytics?.card_rarities.rare || 0)}</Badge>
+              </div>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="text-purple-500">●</span>
+                  <span>Ultra Rare</span>
+                </div>
+                <Badge variant="secondary">{Math.floor(analytics?.card_rarities.ultra_rare || 0)}</Badge>
+              </div>
+            </CardContent>
+          </Card>
+        </PremiumFeatureGate>
+      </div>
 
       {/* Recent Activity */}
       <Card className="mb-8">
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle className="flex items-center gap-2">
-            <Clock className="h-5 w-5" />
-            Recent Activity
-          </CardTitle>
-          <Button 
-            variant="outline" 
-            size="sm"
-            onClick={handleViewAllActivities}
-          >
-            <Eye className="h-4 w-4 mr-2" />
-            View All Activities
-          </Button>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2">
+              <Clock className="h-5 w-5 text-orange-500" />
+              Recent activity
+            </CardTitle>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => navigate('/dashboard/activities')}
+              className="flex items-center gap-2"
+            >
+              <Eye className="h-4 w-4" />
+              View All Activities
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
-          {recentActivities.length === 0 ? (
-            <p className="text-gray-500 text-center py-4">No recent activity</p>
-          ) : (
-            <div className="space-y-3">
-              {recentActivities.map((activity) => (
-                <div key={activity.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 bg-blue-100 rounded-full">
-                      <Package className="h-4 w-4 text-blue-600" />
-                    </div>
-                    <div>
-                      <p className="font-medium">{activity.description}</p>
-                      <p className="text-sm text-gray-600">
-                        {new Date(activity.timestamp).toLocaleDateString()}
-                      </p>
-                    </div>
+          {analytics?.recent_activity && analytics.recent_activity.length > 0 ? (
+            <div className="space-y-4">
+              {analytics.recent_activity.slice(0, 5).map((activity, index) => (
+                <div key={index} className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
+                  <div className="flex-shrink-0">
+                    <div className="w-2 h-2 bg-green-500 rounded-full mt-2"></div>
                   </div>
-                  <Badge variant="outline">{activity.activity_type}</Badge>
+                  <div className="flex-1">
+                    <p className="text-sm text-gray-900">{activity.message}</p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      {new Date(activity.date).toLocaleDateString()} at {new Date(activity.date).toLocaleTimeString()}
+                    </p>
+                  </div>
                 </div>
               ))}
+            </div>
+          ) : (
+            <div className="text-center py-8 text-gray-500">
+              <p>No recent activity.</p>
+              <p className="text-sm mt-2">Start adding cards to see activity here!</p>
             </div>
           )}
         </CardContent>
       </Card>
 
-      {/* My Collection and Wishlist */}
-      <Card>
-        <CardHeader>
-          <CardTitle>My Collection & Wishlist</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Tabs defaultValue="collection" className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="collection">Recent Additions to Collection</TabsTrigger>
-              <TabsTrigger value="wishlist">Your Wishlist Cards</TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="collection" className="mt-4">
-              {recentCollectionCards.length === 0 ? (
+      {/* Collection and Wishlist Tabs */}
+      <Tabs defaultValue="collection" className="w-full">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="collection">My Collection</TabsTrigger>
+          <TabsTrigger value="wishlist">Wishlist</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="collection" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Recent Additions</CardTitle>
+              <CardDescription>
+                Cards you've recently added to your collection
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {collection.length === 0 ? (
                 <div className="text-center py-8 text-gray-500">
-                  <Package className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-                  <p>No cards in your collection yet.</p>
-                  <Button className="mt-4" onClick={() => navigate('/cards')}>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Browse Cards
-                  </Button>
+                  <p>Your collection is empty.</p>
+                  <p className="text-sm mt-2">Start by browsing cards and adding them to your collection!</p>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                  {recentCollectionCards.map((item) => (
-                    <div key={item.id} className="border rounded-lg p-4 hover:shadow-lg transition-shadow">
-                      <div className="flex flex-col gap-3">
-                        <div className="flex justify-center">
-                          {item.cardData?.images?.small ? (
-                            <img
-                              src={item.cardData.images.small}
-                              alt={item.cardData.name || `Card ${item.card_id}`}
-                              className="w-24 h-32 object-cover rounded-lg shadow-md"
-                            />
-                          ) : (
-                            <div className="w-24 h-32 bg-gray-200 rounded-lg flex items-center justify-center">
-                              <span className="text-gray-500 text-xs">No Image</span>
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    {collection.map((item) => (
+                      <div key={item.id} className="border rounded-lg p-4 hover:shadow-lg transition-shadow">
+                        <div className="flex flex-col gap-3">
+                          {/* Card Image */}
+                          <div className="flex justify-center">
+                            {item.cardData?.images?.small ? (
+                              <img
+                                src={item.cardData.images.small}
+                                alt={item.cardData.name || `Card ${item.card_id}`}
+                                className="w-24 h-32 object-cover rounded-lg shadow-md"
+                              />
+                            ) : (
+                              <div className="w-24 h-32 bg-gray-200 rounded-lg flex items-center justify-center">
+                                <span className="text-gray-500 text-xs">No Image</span>
+                              </div>
+                            )}
+                          </div>
+                          
+                          {/* Card Info */}
+                          <div className="text-center">
+                            <p className="font-medium text-sm mb-1">
+                              {item.cardData?.name || `Card ${item.card_id}`}
+                            </p>
+                            <div className="flex flex-wrap justify-center gap-1 mb-2">
+                              <Badge variant="outline" className="text-xs">Qty: {item.quantity}</Badge>
+                              <Badge variant="outline" className="text-xs">{item.condition}</Badge>
                             </div>
-                          )}
-                        </div>
-                        <div>
-                          <h3 className="font-medium text-sm mb-1">
-                            {item.cardData?.name || `Card ID: ${item.card_id}`}
-                          </h3>
-                          <div className="flex justify-between items-center text-xs text-gray-600">
-                            <span>Qty: {item.quantity}</span>
-                            <Badge variant="outline" className="text-xs">
-                              {item.condition}
-                            </Badge>
+                            <p className="text-xs text-gray-500">
+                              {new Date(item.added_date).toLocaleDateString()}
+                            </p>
                           </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
+                  <div className="text-center pt-4">
+                    <Button
+                      variant="outline"
+                      onClick={() => handleQuickAccess('collection')}
+                    >
+                      View All Collection ({analytics?.total_cards || 0} cards)
+                    </Button>
+                  </div>
                 </div>
               )}
-              <div className="flex justify-center mt-6">
-                <Button variant="outline" onClick={() => navigate('/dashboard/collection')}>
-                  View All Collection
-                  <ArrowRight className="h-4 w-4 ml-2" />
-                </Button>
-              </div>
-            </TabsContent>
-            
-            <TabsContent value="wishlist" className="mt-4">
-              {recentWishlistCards.length === 0 ? (
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="wishlist" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Your Wishlist</CardTitle>
+              <CardDescription>
+                Cards you want to add to your collection
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {wishlist.length === 0 ? (
                 <div className="text-center py-8 text-gray-500">
-                  <Heart className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-                  <p>No cards in your wishlist yet.</p>
-                  <Button className="mt-4" onClick={() => navigate('/cards')}>
-                    <Heart className="h-4 w-4 mr-2" />
-                    Add to Wishlist
-                  </Button>
+                  <p>Your wishlist is empty.</p>
+                  <p className="text-sm mt-2">Add cards to your wishlist while browsing!</p>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                  {recentWishlistCards.map((item) => (
-                    <div key={item.id} className="border rounded-lg p-4 hover:shadow-lg transition-shadow">
-                      <div className="flex flex-col gap-3">
-                        <div className="flex justify-center">
-                          {item.cardData?.images?.small ? (
-                            <img
-                              src={item.cardData.images.small}
-                              alt={item.cardData.name || `Card ${item.card_id}`}
-                              className="w-24 h-32 object-cover rounded-lg shadow-md"
-                            />
-                          ) : (
-                            <div className="w-24 h-32 bg-gray-200 rounded-lg flex items-center justify-center">
-                              <span className="text-gray-500 text-xs">No Image</span>
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    {wishlist.map((item) => (
+                      <div key={item.id} className="border rounded-lg p-4 hover:shadow-lg transition-shadow">
+                        <div className="flex flex-col gap-3">
+                          {/* Card Image */}
+                          <div className="flex justify-center">
+                            {item.cardData?.images?.small ? (
+                              <img
+                                src={item.cardData.images.small}
+                                alt={item.cardData.name || `Card ${item.card_id}`}
+                                className="w-24 h-32 object-cover rounded-lg shadow-md"
+                              />
+                            ) : (
+                              <div className="w-24 h-32 bg-gray-200 rounded-lg flex items-center justify-center">
+                                <span className="text-gray-500 text-xs">No Image</span>
+                              </div>
+                            )}
+                          </div>
+                          
+                          {/* Card Info */}
+                          <div className="text-center">
+                            <p className="font-medium text-sm mb-1">
+                              {item.cardData?.name || `Card ${item.card_id}`}
+                            </p>
+                            <div className="flex justify-center mb-2">
+                              <Badge variant="outline" className="text-xs">
+                                {item.priority} Priority
+                              </Badge>
                             </div>
-                          )}
-                        </div>
-                        <div>
-                          <h3 className="font-medium text-sm mb-1">
-                            {item.cardData?.name || `Card ID: ${item.card_id}`}
-                          </h3>
-                          <div className="flex justify-between items-center text-xs">
-                            <Badge variant="outline" className={`text-xs ${
-                              item.priority === 'urgent' ? 'bg-red-100 text-red-800' :
-                              item.priority === 'high' ? 'bg-orange-100 text-orange-800' :
-                              item.priority === 'medium' ? 'bg-yellow-100 text-yellow-800' :
-                              'bg-green-100 text-green-800'
-                            }`}>
-                              {item.priority} Priority
-                            </Badge>
+                            <p className="text-xs text-gray-500">
+                              {new Date(item.added_date).toLocaleDateString()}
+                            </p>
                           </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
+                  <div className="text-center pt-4">
+                    <Button
+                      variant="outline"
+                      onClick={() => handleQuickAccess('wishlist')}
+                    >
+                      View All Wishlist ({analytics?.wishlist_count || 0} cards)
+                    </Button>
+                  </div>
                 </div>
               )}
-              <div className="flex justify-center mt-6">
-                <Button variant="outline" onClick={() => navigate('/dashboard/wishlist')}>
-                  View All Wishlist
-                  <ArrowRight className="h-4 w-4 ml-2" />
-                </Button>
-              </div>
-            </TabsContent>
-          </Tabs>
-        </CardContent>
-      </Card>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };
