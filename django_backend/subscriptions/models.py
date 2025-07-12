@@ -24,7 +24,7 @@ class Subscription(models.Model):
     current_period_end = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    
+
     def __str__(self):
         return f"{self.user.email} - {self.plan} - {self.status}"
     

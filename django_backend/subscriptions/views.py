@@ -40,8 +40,10 @@ def create_checkout_session(request):
         
         # Check if user already has an active subscription
         try:
-            existing_subscription = Subscription.objects.get(user=request.user, is_active=True)
-            return Response({'error': 'User already has an active subscription'}, status=400)
+            existing_subscription = Subscription.objects.get(user=request.user)
+            if existing_subscription.is_active:
+                logger.warning(f"User {request.user.email} already has an active subscription.")
+                return Response({'error': 'User already has an active subscription'}, status=400)
         except Subscription.DoesNotExist:
             pass
 
