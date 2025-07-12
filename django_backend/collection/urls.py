@@ -11,4 +11,8 @@ urlpatterns = [
     path('notes/', views.CardNoteListCreateView.as_view(), name='card-notes-list'),
     path('notes/<int:pk>/', views.CardNoteDetailView.as_view(), name='card-notes-detail'),
     path('dashboard/analytics/', views.dashboard_analytics, name='dashboard-analytics'),
+    path('activities/', views.user_activities, name='user-activities'),
+    path('user/collection/', views.user_collection_cards, name='user-collection-cards'),
+    path('user/wishlist/', views.user_wishlist_cards, name='user-wishlist-cards'),
+    path('user/graded/', views.user_graded_cards, name='user-graded-cards'),
 ]

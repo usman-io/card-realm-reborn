@@ -1,5 +1,7 @@
+
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
@@ -8,10 +10,11 @@ import { UsageCard } from '@/components/UsageCard';
 import { PremiumFeatureGate } from '@/components/PremiumFeatureGate';
 import { backendApi } from '@/services/api';
 import { Collection, Wishlist, DashboardAnalytics } from '@/types/api';
-import { Edit, Trash2, ChevronRight, Trophy, BarChart3, Heart, Copy, Award, Clock, Crown, TrendingUp, DollarSign } from 'lucide-react';
+import { Edit, Trash2, ChevronRight, Trophy, BarChart3, Heart, Copy, Award, Clock, Crown, TrendingUp, DollarSign, Eye } from 'lucide-react';
 
 const Dashboard = () => {
   const { user, token } = useAuth();
+  const navigate = useNavigate();
   const [collection, setCollection] = useState<Collection[]>([]);
   const [wishlist, setWishlist] = useState<Wishlist[]>([]);
   const [analytics, setAnalytics] = useState<DashboardAnalytics | null>(null);
@@ -69,6 +72,10 @@ const Dashboard = () => {
     } catch (error) {
       console.error('Error deleting wishlist item:', error);
     }
+  };
+
+  const handleQuickAccess = (type: string) => {
+    navigate(`/dashboard/${type}`);
   };
 
   if (loading) {
@@ -215,28 +222,46 @@ const Dashboard = () => {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex items-center justify-between cursor-pointer hover:bg-gray-50 p-2 rounded">
+            <div 
+              className="flex items-center justify-between cursor-pointer hover:bg-gray-50 p-2 rounded"
+              onClick={() => handleQuickAccess('collection')}
+            >
               <div className="flex items-center gap-2">
                 <BarChart3 className="h-4 w-4" />
                 <span>Cards in collection</span>
               </div>
-              <Badge variant="outline">{analytics?.total_cards || 0}</Badge>
+              <div className="flex items-center gap-2">
+                <Badge variant="outline">{analytics?.total_cards || 0}</Badge>
+                <ChevronRight className="h-4 w-4" />
+              </div>
             </div>
-            <div className="flex items-center justify-between cursor-pointer hover:bg-gray-50 p-2 rounded">
+            <div 
+              className="flex items-center justify-between cursor-pointer hover:bg-gray-50 p-2 rounded"
+              onClick={() => handleQuickAccess('wishlist')}
+            >
               <div className="flex items-center gap-2">
                 <Heart className="h-4 w-4" />
                 <span>Cards in wishlist</span>
               </div>
-              <Badge variant="outline">{analytics?.wishlist_count || 0}</Badge>
+              <div className="flex items-center gap-2">
+                <Badge variant="outline">{analytics?.wishlist_count || 0}</Badge>
+                <ChevronRight className="h-4 w-4" />
+              </div>
             </div>
             {analytics?.is_premium && (
               <>
-                <div className="flex items-center justify-between cursor-pointer hover:bg-gray-50 p-2 rounded">
+                <div 
+                  className="flex items-center justify-between cursor-pointer hover:bg-gray-50 p-2 rounded"
+                  onClick={() => handleQuickAccess('graded')}
+                >
                   <div className="flex items-center gap-2">
                     <Award className="h-4 w-4" />
                     <span>Graded cards</span>
                   </div>
-                  <Badge variant="outline">{analytics?.graded_cards || 0}</Badge>
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline">{analytics?.graded_cards || 0}</Badge>
+                    <ChevronRight className="h-4 w-4" />
+                  </div>
                 </div>
                 <div className="flex items-center justify-between cursor-pointer hover:bg-gray-50 p-2 rounded">
                   <div className="flex items-center gap-2">
@@ -331,10 +356,21 @@ const Dashboard = () => {
       {/* Recent Activity */}
       <Card className="mb-8">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Clock className="h-5 w-5 text-orange-500" />
-            Recent activity
-          </CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2">
+              <Clock className="h-5 w-5 text-orange-500" />
+              Recent activity
+            </CardTitle>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => navigate('/dashboard/activities')}
+              className="flex items-center gap-2"
+            >
+              <Eye className="h-4 w-4" />
+              View All Activities
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           {analytics?.recent_activity && analytics.recent_activity.length > 0 ? (
@@ -385,7 +421,7 @@ const Dashboard = () => {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {collection.slice(0, 10).map((item) => (
+                  {collection.slice(0, 4).map((item) => (
                     <div key={item.id} className="flex items-center justify-between p-4 border rounded-lg">
                       <div className="flex-1">
                         <p className="font-medium">Card ID: {item.card_id}</p>
@@ -412,6 +448,16 @@ const Dashboard = () => {
                       </div>
                     </div>
                   ))}
+                  {collection.length > 4 && (
+                    <div className="text-center pt-4">
+                      <Button
+                        variant="outline"
+                        onClick={() => handleQuickAccess('collection')}
+                      >
+                        View All Collection ({collection.length} cards)
+                      </Button>
+                    </div>
+                  )}
                 </div>
               )}
             </CardContent>
@@ -434,7 +480,7 @@ const Dashboard = () => {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {wishlist.map((item) => (
+                  {wishlist.slice(0, 4).map((item) => (
                     <div key={item.id} className="flex items-center justify-between p-4 border rounded-lg">
                       <div className="flex-1">
                         <p className="font-medium">Card ID: {item.card_id}</p>
@@ -461,6 +507,16 @@ const Dashboard = () => {
                       </div>
                     </div>
                   ))}
+                  {wishlist.length > 4 && (
+                    <div className="text-center pt-4">
+                      <Button
+                        variant="outline"
+                        onClick={() => handleQuickAccess('wishlist')}
+                      >
+                        View All Wishlist ({wishlist.length} cards)
+                      </Button>
+                    </div>
+                  )}
                 </div>
               )}
             </CardContent>

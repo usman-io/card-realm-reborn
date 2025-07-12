@@ -252,6 +252,50 @@ export const backendApi = {
     return response.json();
   },
 
+  async getUserActivities(token: string, params: Record<string, string> = {}) {
+    const searchParams = new URLSearchParams(params);
+    const url = `${API_BASE_URL}/activities/${searchParams.toString() ? '?' + searchParams.toString() : ''}`;
+    const response = await fetch(url, {
+      headers: {
+        'Authorization': `Token ${token}`,
+      },
+    });
+    return response.json();
+  },
+
+  async getUserCollectionCards(token: string, params: Record<string, string> = {}) {
+    const searchParams = new URLSearchParams(params);
+    const url = `${API_BASE_URL}/user/collection/${searchParams.toString() ? '?' + searchParams.toString() : ''}`;
+    const response = await fetch(url, {
+      headers: {
+        'Authorization': `Token ${token}`,
+      },
+    });
+    return response.json();
+  },
+
+  async getUserWishlistCards(token: string, params: Record<string, string> = {}) {
+    const searchParams = new URLSearchParams(params);
+    const url = `${API_BASE_URL}/user/wishlist/${searchParams.toString() ? '?' + searchParams.toString() : ''}`;
+    const response = await fetch(url, {
+      headers: {
+        'Authorization': `Token ${token}`,
+      },
+    });
+    return response.json();
+  },
+
+  async getUserGradedCards(token: string, params: Record<string, string> = {}) {
+    const searchParams = new URLSearchParams(params);
+    const url = `${API_BASE_URL}/user/graded/${searchParams.toString() ? '?' + searchParams.toString() : ''}`;
+    const response = await fetch(url, {
+      headers: {
+        'Authorization': `Token ${token}`,
+      },
+    });
+    return response.json();
+  },
+
   async getSubscription(token: string) {
     const response = await fetch(`${API_BASE_URL}/subscription/`, {
       headers: {

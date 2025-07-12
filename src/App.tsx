@@ -10,6 +10,10 @@ import Sets from '@/pages/Sets';
 import CardDetail from '@/pages/CardDetail';
 import SetDetail from '@/pages/SetDetail';
 import Dashboard from '@/pages/Dashboard';
+import Activities from '@/pages/Activities';
+import UserCollection from '@/pages/UserCollection';
+import UserWishlist from '@/pages/UserWishlist';
+import UserGradedCards from '@/pages/UserGradedCards';
 import Premium from '@/pages/Premium';
 import PaymentSuccess from '@/pages/PaymentSuccess';
 import Login from '@/pages/Login';
@@ -42,6 +46,38 @@ function App() {
                   element={
                     <ProtectedRoute>
                       <Dashboard />
+                    </ProtectedRoute>
+                  } 
+                />
+                <Route 
+                  path="/dashboard/activities" 
+                  element={
+                    <ProtectedRoute>
+                      <Activities />
+                    </ProtectedRoute>
+                  } 
+                />
+                <Route 
+                  path="/dashboard/collection" 
+                  element={
+                    <ProtectedRoute>
+                      <UserCollection />
+                    </ProtectedRoute>
+                  } 
+                />
+                <Route 
+                  path="/dashboard/wishlist" 
+                  element={
+                    <ProtectedRoute>
+                      <UserWishlist />
+                    </ProtectedRoute>
+                  } 
+                />
+                <Route 
+                  path="/dashboard/graded" 
+                  element={
+                    <ProtectedRoute>
+                      <UserGradedCards />
                     </ProtectedRoute>
                   } 
                 />

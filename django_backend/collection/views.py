@@ -2,10 +2,16 @@
 from rest_framework import generics, permissions, status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
+from rest_framework.pagination import PageNumberPagination
 from django.db.models import Count, Q
 from .models import Collection, Wishlist, CardNote
 from .serializers import CollectionSerializer, WishlistSerializer, CardNoteSerializer
 from subscriptions.models import Subscription
+
+class CustomPageNumberPagination(PageNumberPagination):
+    page_size = 20
+    page_size_query_param = 'page_size'
+    max_page_size = 100
 
 class CollectionListCreateView(generics.ListCreateAPIView):
     serializer_class = CollectionSerializer
@@ -196,3 +202,101 @@ def dashboard_analytics(request):
         'card_rarities': card_rarities,
         'recent_activity': recent_activity[:10],
     })
+
+@api_view(['GET'])
+@permission_classes([permissions.IsAuthenticated])
+def user_activities(request):
+    """Get paginated user activities with search functionality"""
+    user = request.user
+    search_query = request.GET.get('search', '').strip()
+    
+    # Get all activities
+    collection_items = Collection.objects.filter(user=user).order_by('-added_date')
+    wishlist_items = Wishlist.objects.filter(user=user).order_by('-added_date')
+    
+    activities = []
+    
+    # Add collection activities
+    for item in collection_items:
+        activity = {
+            'id': f'collection_{item.id}',
+            'type': 'collection_add',
+            'card_id': item.card_id,
+            'date': item.added_date.isoformat(),
+            'message': f'Added {item.quantity}x card {item.card_id} to collection',
+            'quantity': item.quantity,
+            'variant': item.variant,
+            'condition': item.condition,
+        }
+        if not search_query or search_query.lower() in activity['message'].lower() or search_query.lower() in item.card_id.lower():
+            activities.append(activity)
+    
+    # Add wishlist activities
+    for item in wishlist_items:
+        activity = {
+            'id': f'wishlist_{item.id}',
+            'type': 'wishlist_add',
+            'card_id': item.card_id,
+            'date': item.added_date.isoformat(),
+            'message': f'Added card {item.card_id} to wishlist',
+            'priority': item.priority,
+        }
+        if not search_query or search_query.lower() in activity['message'].lower() or search_query.lower() in item.card_id.lower():
+            activities.append(activity)
+    
+    # Sort by date
+    activities.sort(key=lambda x: x['date'], reverse=True)
+    
+    # Pagination
+    paginator = CustomPageNumberPagination()
+    page = paginator.paginate_queryset(activities, request)
+    
+    return paginator.get_paginated_response(page)
+
+@api_view(['GET'])
+@permission_classes([permissions.IsAuthenticated])
+def user_collection_cards(request):
+    """Get paginated collection cards"""
+    collection_items = Collection.objects.filter(user=request.user).order_by('-added_date')
+    
+    paginator = CustomPageNumberPagination()
+    page = paginator.paginate_queryset(collection_items, request)
+    
+    if page is not None:
+        serializer = CollectionSerializer(page, many=True)
+        return paginator.get_paginated_response(serializer.data)
+    
+    serializer = CollectionSerializer(collection_items, many=True)
+    return Response(serializer.data)
+
+@api_view(['GET'])
+@permission_classes([permissions.IsAuthenticated])
+def user_wishlist_cards(request):
+    """Get paginated wishlist cards"""
+    wishlist_items = Wishlist.objects.filter(user=request.user).order_by('-added_date')
+    
+    paginator = CustomPageNumberPagination()
+    page = paginator.paginate_queryset(wishlist_items, request)
+    
+    if page is not None:
+        serializer = WishlistSerializer(page, many=True)
+        return paginator.get_paginated_response(serializer.data)
+    
+    serializer = WishlistSerializer(wishlist_items, many=True)
+    return Response(serializer.data)
+
+@api_view(['GET'])
+@permission_classes([permissions.IsAuthenticated])
+def user_graded_cards(request):
+    """Get paginated graded collection cards"""
+    graded_items = Collection.objects.filter(user=request.user, is_graded=True).order_by('-added_date')
+    
+    paginator = CustomPageNumberPagination()
+    page = paginator.paginate_queryset(graded_items, request)
+    
+    if page is not None:
+        serializer = CollectionSerializer(page, many=True)
+        return paginator.get_paginated_response(serializer.data)
+    
+    serializer = CollectionSerializer(graded_items, many=True)
+    return Response(serializer.data)
