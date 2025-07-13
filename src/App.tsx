@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -24,6 +23,7 @@ import PaymentSuccess from '@/pages/PaymentSuccess';
 import Activities from '@/pages/Activities';
 import Profile from '@/pages/Profile';
 import NotFound from '@/pages/NotFound';
+import SharedDashboard from '@/pages/SharedDashboard';
 
 // Create a client
 const queryClient = new QueryClient({
@@ -93,6 +93,9 @@ function App() {
                     <PaymentSuccess />
                   </ProtectedRoute>
                 } />
+                
+                {/* Public Shared Dashboard Route */}
+                <Route path="/dashboard/shared/:userId" element={<SharedDashboard />} />
                 
                 <Route path="*" element={<NotFound />} />
               </Routes>

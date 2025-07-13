@@ -336,4 +336,23 @@ export const backendApi = {
     });
     return response.json();
   },
+
+  async getSharedCollection(userId: string, params: Record<string, string> = {}) {
+    const searchParams = new URLSearchParams(params);
+    const url = `${API_BASE_URL}/shared/collection/${userId}/${searchParams.toString() ? '?' + searchParams.toString() : ''}`;
+    const response = await fetch(url);
+    return response.json();
+  },
+
+  async getSharedWishlist(userId: string, params: Record<string, string> = {}) {
+    const searchParams = new URLSearchParams(params);
+    const url = `${API_BASE_URL}/shared/wishlist/${userId}/${searchParams.toString() ? '?' + searchParams.toString() : ''}`;
+    const response = await fetch(url);
+    return response.json();
+  },
+
+  async getSharedDashboardAnalytics(userId: string) {
+    const response = await fetch(`${API_BASE_URL}/shared/dashboard/analytics/${userId}/`);
+    return response.json();
+  },
 };

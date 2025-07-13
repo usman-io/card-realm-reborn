@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
@@ -10,7 +9,8 @@ import { UsageCard } from '@/components/UsageCard';
 import { PremiumFeatureGate } from '@/components/PremiumFeatureGate';
 import { backendApi, pokemonApi } from '@/services/api';
 import { Collection, Wishlist, DashboardAnalytics, PokemonCard } from '@/types/api';
-import { Edit, Trash2, ChevronRight, Trophy, BarChart3, Heart, Copy, Award, Clock, Crown, TrendingUp, DollarSign, Eye } from 'lucide-react';
+import { Edit, Trash2, ChevronRight, Trophy, BarChart3, Heart, Copy, Award, Clock, Crown, TrendingUp, DollarSign, Eye, Share2 } from 'lucide-react';
+import { ShareDashboardDialog } from '@/components/ShareDashboardDialog';
 
 interface CollectionWithCard extends Collection {
   cardData?: PokemonCard;
@@ -126,12 +126,22 @@ const Dashboard = () => {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">
-          Welcome back, {user?.first_name}!
-        </h1>
-        <p className="text-gray-600 mt-2">
-          Here's an overview of your Pokémon card collection
-        </p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">
+              Welcome back, {user?.first_name}!
+            </h1>
+            <p className="text-gray-600 mt-2">
+              Here's an overview of your Pokémon card collection
+            </p>
+          </div>
+          <ShareDashboardDialog>
+            <Button variant="outline" className="flex items-center gap-2">
+              <Share2 className="h-4 w-4" />
+              Share Dashboard
+            </Button>
+          </ShareDashboardDialog>
+        </div>
       </div>
 
       {/* Stats Cards */}
