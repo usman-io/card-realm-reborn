@@ -140,6 +140,7 @@ export interface DashboardAnalytics {
   usage_percentage: number;
   cards_remaining: number;
   plan_name: string;
+  user_name?: string; // Added for shared dashboard functionality
   sets_completed: {
     any_variant: number;
     regular_variants: number;
