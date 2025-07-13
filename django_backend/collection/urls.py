@@ -15,4 +15,8 @@ urlpatterns = [
     path('user/collection/', views.user_collection_cards, name='user-collection-cards'),
     path('user/wishlist/', views.user_wishlist_cards, name='user-wishlist-cards'),
     path('user/graded/', views.user_graded_cards, name='user-graded-cards'),
+    # Shared dashboard endpoints (public access)
+    path('shared/collection/<int:user_id>/', views.shared_collection, name='shared-collection'),
+    path('shared/wishlist/<int:user_id>/', views.shared_wishlist, name='shared-wishlist'),
+    path('shared/dashboard/analytics/<int:user_id>/', views.shared_dashboard_analytics, name='shared-dashboard-analytics'),
 ]

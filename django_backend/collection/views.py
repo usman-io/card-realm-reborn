@@ -4,9 +4,13 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.pagination import PageNumberPagination
 from django.db.models import Count, Q
+from django.contrib.auth import get_user_model
+from django.shortcuts import get_object_or_404
 from .models import Collection, Wishlist, CardNote
 from .serializers import CollectionSerializer, WishlistSerializer, CardNoteSerializer
 from subscriptions.models import Subscription
+
+User = get_user_model()
 
 class CustomPageNumberPagination(PageNumberPagination):
     page_size = 20
@@ -197,11 +201,14 @@ def dashboard_analytics(request):
         'usage_percentage': usage_percentage,
         'cards_remaining': cards_remaining,
         'plan_name': user_subscription.plan if user_subscription and is_premium else 'Free',
+        'user_name': f"{user.first_name} {user.last_name}".strip() or user.email,
         'sets_completed': sets_completed,
         'card_types': card_types,
         'card_rarities': card_rarities,
         'recent_activity': recent_activity[:10],
     })
+
+# ... keep existing code (user_activities, user_collection_cards, user_wishlist_cards, user_graded_cards functions)
 
 @api_view(['GET'])
 @permission_classes([permissions.IsAuthenticated])
@@ -300,3 +307,152 @@ def user_graded_cards(request):
     
     serializer = CollectionSerializer(graded_items, many=True)
     return Response(serializer.data)
+
+# New shared dashboard views - these don't require authentication
+@api_view(['GET'])
+def shared_collection(request, user_id):
+    """Get shared collection for a specific user (public access)"""
+    try:
+        user = get_object_or_404(User, id=user_id)
+        collection_items = Collection.objects.filter(user=user).order_by('-added_date')
+        
+        # Apply pagination and filtering
+        paginator = CustomPageNumberPagination()
+        page = paginator.paginate_queryset(collection_items, request)
+        
+        if page is not None:
+            serializer = CollectionSerializer(page, many=True)
+            return paginator.get_paginated_response(serializer.data)
+        
+        serializer = CollectionSerializer(collection_items, many=True)
+        return Response(serializer.data)
+    except Exception as e:
+        return Response({'error': 'Collection not found'}, status=status.HTTP_404_NOT_FOUND)
+
+@api_view(['GET'])
+def shared_wishlist(request, user_id):
+    """Get shared wishlist for a specific user (public access)"""
+    try:
+        user = get_object_or_404(User, id=user_id)
+        wishlist_items = Wishlist.objects.filter(user=user).order_by('-added_date')
+        
+        # Apply pagination and filtering
+        paginator = CustomPageNumberPagination()
+        page = paginator.paginate_queryset(wishlist_items, request)
+        
+        if page is not None:
+            serializer = WishlistSerializer(page, many=True)
+            return paginator.get_paginated_response(serializer.data)
+        
+        serializer = WishlistSerializer(wishlist_items, many=True)
+        return Response(serializer.data)
+    except Exception as e:
+        return Response({'error': 'Wishlist not found'}, status=status.HTTP_404_NOT_FOUND)
+
+@api_view(['GET'])
+def shared_dashboard_analytics(request, user_id):
+    """Get shared dashboard analytics for a specific user (public access)"""
+    try:
+        user = get_object_or_404(User, id=user_id)
+        
+        # Get user subscription status
+        user_subscription = None
+        is_premium = False
+        try:
+            user_subscription = Subscription.objects.get(user=user)
+            is_premium = user_subscription.is_active
+        except Subscription.DoesNotExist:
+            pass
+
+        # Basic analytics available to all users
+        collection_items = Collection.objects.filter(user=user)
+        total_cards = collection_items.count()
+        unique_cards = collection_items.values('card_id').distinct().count()
+        wishlist_count = Wishlist.objects.filter(user=user).count()
+        graded_cards = collection_items.filter(is_graded=True).count()
+
+        # Calculate usage percentage for free users
+        usage_percentage = 0
+        cards_remaining = 0
+        if not is_premium:
+            usage_percentage = min((total_cards / 100) * 100, 100)
+            cards_remaining = max(100 - total_cards, 0)
+
+        # Advanced analytics only for premium users
+        estimated_value = 0
+        completion_rate = 0
+        sets_completed = {
+            'any_variant': 0,
+            'regular_variants': 0,
+            'all_variants': 0,
+            'standard_set': 0,
+            'parallel_set': 0,
+        }
+        
+        if is_premium:
+            # Premium users get advanced analytics
+            estimated_value = total_cards * 2.5  # Placeholder calculation
+            completion_rate = min((unique_cards / max(total_cards, 1)) * 100, 100)
+
+        # Card type breakdown
+        card_types = {
+            'pokemon': unique_cards * 0.7,
+            'trainer': unique_cards * 0.2,
+            'energy': unique_cards * 0.1,
+        }
+
+        # Card rarity breakdown
+        card_rarities = {
+            'common': unique_cards * 0.4,
+            'uncommon': unique_cards * 0.3,
+            'rare': unique_cards * 0.2,
+            'ultra_rare': unique_cards * 0.1,
+        }
+
+        # Recent activity
+        recent_collection = collection_items.order_by('-added_date')[:5]
+        recent_wishlist = Wishlist.objects.filter(user=user).order_by('-added_date')[:3]
+        
+        recent_activity = []
+        for item in recent_collection:
+            recent_activity.append({
+                'type': 'collection_add',
+                'card_id': item.card_id,
+                'date': item.added_date.isoformat(),
+                'message': f'Added {item.quantity}x card {item.card_id} to collection',
+                'quantity': item.quantity,
+                'variant': item.variant,
+                'condition': item.condition,
+            })
+        
+        for item in recent_wishlist:
+            recent_activity.append({
+                'type': 'wishlist_add',
+                'card_id': item.card_id,
+                'date': item.added_date.isoformat(),
+                'message': f'Added card {item.card_id} to wishlist',
+                'priority': item.priority,
+            })
+        
+        # Sort by date
+        recent_activity.sort(key=lambda x: x['date'], reverse=True)
+
+        return Response({
+            'total_cards': total_cards,
+            'unique_cards': unique_cards,
+            'wishlist_count': wishlist_count,
+            'graded_cards': graded_cards,
+            'estimated_value': estimated_value if is_premium else 0,
+            'completion_rate': completion_rate,
+            'is_premium': is_premium,
+            'usage_percentage': usage_percentage,
+            'cards_remaining': cards_remaining,
+            'plan_name': user_subscription.plan if user_subscription and is_premium else 'Free',
+            'user_name': f"{user.first_name} {user.last_name}".strip() or user.email,
+            'sets_completed': sets_completed,
+            'card_types': card_types,
+            'card_rarities': card_rarities,
+            'recent_activity': recent_activity[:10],
+        })
+    except Exception as e:
+        return Response({'error': 'Dashboard not found'}, status=status.HTTP_404_NOT_FOUND)
