@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
@@ -5,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
 import { UsageCard } from '@/components/UsageCard';
 import { PremiumFeatureGate } from '@/components/PremiumFeatureGate';
 import { backendApi, pokemonApi } from '@/services/api';
@@ -26,7 +28,9 @@ const Dashboard = () => {
   const [collection, setCollection] = useState<CollectionWithCard[]>([]);
   const [wishlist, setWishlist] = useState<WishlistWithCard[]>([]);
   const [analytics, setAnalytics] = useState<DashboardAnalytics | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [analyticsLoading, setAnalyticsLoading] = useState(true);
+  const [collectionLoading, setCollectionLoading] = useState(true);
+  const [wishlistLoading, setWishlistLoading] = useState(true);
 
   const fetchCardData = async (cardId: string): Promise<PokemonCard | null> => {
     try {
@@ -39,22 +43,32 @@ const Dashboard = () => {
   };
 
   useEffect(() => {
-    const fetchData = async () => {
+    const fetchAnalytics = async () => {
       if (!token) {
-        setLoading(false);
+        setAnalyticsLoading(false);
         return;
       }
 
       try {
-        setLoading(true);
-        
-        const [collectionResponse, wishlistResponse, analyticsResponse] = await Promise.all([
-          backendApi.getCollection(token, { limit: '4', ordering: '-added_date' }),
-          backendApi.getWishlist(token, { limit: '4', ordering: '-added_date' }),
-          backendApi.getDashboardAnalytics(token)
-        ]);
-        
+        const analyticsResponse = await backendApi.getDashboardAnalytics(token);
+        setAnalytics(analyticsResponse);
+      } catch (error) {
+        console.error('Error fetching analytics:', error);
+        setAnalytics(null);
+      } finally {
+        setAnalyticsLoading(false);
+      }
+    };
 
+    const fetchCollectionData = async () => {
+      if (!token) {
+        setCollectionLoading(false);
+        return;
+      }
+
+      try {
+        const collectionResponse = await backendApi.getCollection(token, { limit: '4', ordering: '-added_date' });
+        
         // Fetch card data for recent collection items
         const collectionArray = Array.isArray(collectionResponse.results) ? collectionResponse.results : [];
         const collectionWithCards = await Promise.all(
@@ -64,6 +78,24 @@ const Dashboard = () => {
           })
         );
 
+        setCollection(collectionWithCards);
+      } catch (error) {
+        console.error('Error fetching collection:', error);
+        setCollection([]);
+      } finally {
+        setCollectionLoading(false);
+      }
+    };
+
+    const fetchWishlistData = async () => {
+      if (!token) {
+        setWishlistLoading(false);
+        return;
+      }
+
+      try {
+        const wishlistResponse = await backendApi.getWishlist(token, { limit: '4', ordering: '-added_date' });
+        
         // Fetch card data for recent wishlist items
         const wishlistArray = Array.isArray(wishlistResponse.results) ? wishlistResponse.results : [];
         const wishlistWithCards = await Promise.all(
@@ -73,20 +105,19 @@ const Dashboard = () => {
           })
         );
 
-        setCollection(collectionWithCards);
         setWishlist(wishlistWithCards);
-        setAnalytics(analyticsResponse);
       } catch (error) {
-        console.error('Error fetching dashboard data:', error);
-        setCollection([]);
+        console.error('Error fetching wishlist:', error);
         setWishlist([]);
-        setAnalytics(null);
       } finally {
-        setLoading(false);
+        setWishlistLoading(false);
       }
     };
 
-    fetchData();
+    // Fetch analytics, collection, and wishlist independently
+    fetchAnalytics();
+    fetchCollectionData();
+    fetchWishlistData();
   }, [token]);
 
   const handleDeleteCollection = async (id: number) => {
@@ -115,7 +146,8 @@ const Dashboard = () => {
     navigate(`/dashboard/${type}`);
   };
 
-  if (loading) {
+  // Show loading spinner only if analytics are still loading
+  if (analyticsLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
@@ -461,7 +493,27 @@ const Dashboard = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {collection.length === 0 ? (
+              {collectionLoading ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  {Array.from({ length: 4 }, (_, i) => (
+                    <div key={i} className="border rounded-lg p-4">
+                      <div className="flex flex-col gap-3">
+                        <div className="flex justify-center">
+                          <Skeleton className="w-24 h-32 rounded-lg" />
+                        </div>
+                        <div className="text-center space-y-2">
+                          <Skeleton className="h-4 w-20 mx-auto" />
+                          <div className="flex justify-center gap-1">
+                            <Skeleton className="h-5 w-12" />
+                            <Skeleton className="h-5 w-16" />
+                          </div>
+                          <Skeleton className="h-3 w-16 mx-auto" />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : collection.length === 0 ? (
                 <div className="text-center py-8 text-gray-500">
                   <p>Your collection is empty.</p>
                   <p className="text-sm mt-2">Start by browsing cards and adding them to your collection!</p>
@@ -527,7 +579,26 @@ const Dashboard = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {wishlist.length === 0 ? (
+              {wishlistLoading ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  {Array.from({ length: 4 }, (_, i) => (
+                    <div key={i} className="border rounded-lg p-4">
+                      <div className="flex flex-col gap-3">
+                        <div className="flex justify-center">
+                          <Skeleton className="w-24 h-32 rounded-lg" />
+                        </div>
+                        <div className="text-center space-y-2">
+                          <Skeleton className="h-4 w-20 mx-auto" />
+                          <div className="flex justify-center">
+                            <Skeleton className="h-5 w-20" />
+                          </div>
+                          <Skeleton className="h-3 w-16 mx-auto" />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : wishlist.length === 0 ? (
                 <div className="text-center py-8 text-gray-500">
                   <p>Your wishlist is empty.</p>
                   <p className="text-sm mt-2">Add cards to your wishlist while browsing!</p>
