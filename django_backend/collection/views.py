@@ -18,7 +18,7 @@ class CollectionListCreateView(generics.ListCreateAPIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        return Collection.objects.filter(user=self.request.user)
+        return Collection.objects.filter(user=self.request.user).order_by('-added_date')
 
     def perform_create(self, serializer):
         # Check subscription limits for free users

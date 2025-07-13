@@ -105,4 +105,4 @@ USE_TZ = True
 STATIC_URL = 'static/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-FRONTEND_URL='http://localhost:3000'
+FRONTEND_URL=config('FRONTEND_URL', default='http://localhost:8080')

@@ -53,9 +53,10 @@ const Dashboard = () => {
           backendApi.getWishlist(token, { limit: '4', ordering: '-added_date' }),
           backendApi.getDashboardAnalytics(token)
         ]);
+        
 
         // Fetch card data for recent collection items
-        const collectionArray = Array.isArray(collectionResponse) ? collectionResponse : [];
+        const collectionArray = Array.isArray(collectionResponse.results) ? collectionResponse.results : [];
         const collectionWithCards = await Promise.all(
           collectionArray.slice(0, 4).map(async (item) => {
             const cardData = await fetchCardData(item.card_id);
@@ -64,7 +65,7 @@ const Dashboard = () => {
         );
 
         // Fetch card data for recent wishlist items
-        const wishlistArray = Array.isArray(wishlistResponse) ? wishlistResponse : [];
+        const wishlistArray = Array.isArray(wishlistResponse.results) ? wishlistResponse.results : [];
         const wishlistWithCards = await Promise.all(
           wishlistArray.slice(0, 4).map(async (item) => {
             const cardData = await fetchCardData(item.card_id);

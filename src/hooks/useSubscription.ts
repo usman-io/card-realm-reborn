@@ -33,7 +33,7 @@ export const useSubscription = () => {
       
       if (response.ok) {
         const data = await response.json();
-        setSubscription(data.length > 0 ? data[0] : null);
+        setSubscription(data.results.length > 0 ? data.results[0] : null);
       }
     } catch (error) {
       console.error('Error fetching subscription:', error);

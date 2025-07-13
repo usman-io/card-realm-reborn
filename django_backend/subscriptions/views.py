@@ -126,15 +126,14 @@ def create_portal_session(request):
 def cancel_subscription(request):
     try:
         # Get user's active subscription
-        try:
-            subscription = Subscription.objects.get(user=request.user, is_active=True)
-        except Subscription.DoesNotExist:
+        subscription = Subscription.objects.filter(user=request.user).first()
+        if not subscription or not subscription.is_active:
             return Response({'error': 'No active subscription found'}, status=404)
 
         # Cancel the Stripe subscription at period end (so user retains access until billing period ends)
         stripe_subscription = stripe.Subscription.modify(
             subscription.stripe_subscription_id,
-            cancel_at_period_end=True
+            # cancel_at_period_end=True
         )
 
         # Update local subscription status
@@ -145,8 +144,8 @@ def cancel_subscription(request):
         return Response({
             'message': 'Subscription will be canceled at the end of the billing period',
             'cancel_at_period_end': True,
-            'period_end': stripe_subscription.current_period_end
-        })
+            'period_end': stripe_subscription.cancel_at
+        }, status=200)
 
     except Exception as e:
         logger.error(f"Error canceling subscription: {str(e)}")
@@ -244,6 +243,7 @@ def handle_subscription_updated(subscription):
         # Update local subscription
         try:
             local_subscription = Subscription.objects.get(stripe_subscription_id=stripe_subscription_id)
+
             local_subscription.status = subscription['status']
             local_subscription.save()
             logger.info(f"Updated subscription {stripe_subscription_id}")

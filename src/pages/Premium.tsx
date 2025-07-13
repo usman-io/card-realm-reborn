@@ -1,19 +1,31 @@
-
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Check, Star, Zap, Shield, Crown, Loader2, X } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSubscription } from '@/hooks/useSubscription';
 import { toast } from 'sonner';
 import { useSearchParams, useNavigate } from 'react-router-dom';
+import { Dialog } from '@headlessui/react';
+import { Loader2, X, Zap, Shield, Star, Crown, Check } from 'lucide-react';
+
+type SubscriptionStatus = 'active' | 'canceled' | 'past_due' | 'unpaid' | 'incomplete' | 'incomplete_expired' | 'trialing' | 'paused' | null;
+
+interface Subscription {
+  id: string;
+  status: SubscriptionStatus;
+  is_active: boolean;
+  current_period_end?: string;
+  // Add other subscription properties as needed
+}
 
 const Premium = () => {
   const { isAuthenticated } = useAuth();
   const { subscription, loading, isSubscribed, createCheckoutSession, cancelSubscription, refreshSubscription } = useSubscription();
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
+  const [isCanceling, setIsCanceling] = useState(false);
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
   // Handle success/cancel parameters from Stripe redirect
   useEffect(() => {
@@ -32,9 +44,9 @@ const Premium = () => {
     } else if (canceled === 'true') {
       toast.info('Payment was canceled. You can try again anytime.');
       // Clean up URL parameters
-      setSearchParams({});
+      // setSearchParams({});
     }
-  }, [searchParams, setSearchParams, navigate]);
+  }, [searchParams, navigate]);
 
   const features = [
     {
@@ -114,18 +126,87 @@ const Premium = () => {
   };
 
   const handleCancelSubscription = async () => {
-    if (!window.confirm('Are you sure you want to cancel your subscription? You will lose access to premium features at the end of your billing period.')) {
-      return;
-    }
-
+    setIsCanceling(true);
     try {
       await cancelSubscription();
       toast.success('Subscription canceled successfully. You will retain access until the end of your billing period.');
       await refreshSubscription();
     } catch (error) {
       toast.error('Failed to cancel subscription');
+    } finally {
+      setIsCanceling(false);
+      setIsCancelModalOpen(false);
     }
   };
+
+  const CancelSubscriptionModal = () => (
+    <Dialog
+      open={isCancelModalOpen}
+      onClose={() => !isCanceling && setIsCancelModalOpen(false)}
+      className="relative z-50"
+    >
+      <div className="fixed inset-0 bg-black/30" aria-hidden="true" />
+      <div className="fixed inset-0 flex items-center justify-center p-4">
+        <Dialog.Panel className="mx-auto max-w-sm rounded-lg bg-white p-6 shadow-xl">
+          <div className="flex justify-between items-start">
+            <Dialog.Title className="text-lg font-medium text-gray-900">
+              Cancel Subscription
+            </Dialog.Title>
+            <button
+              onClick={() => setIsCancelModalOpen(false)}
+              disabled={isCanceling}
+              className="text-gray-400 hover:text-gray-500"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+
+          <div className="mt-4">
+            <p className="text-sm text-gray-600">
+              Are you sure you want to cancel your subscription? You will lose access to premium features at the end of your billing period.
+            </p>
+          </div>
+
+          <div className="mt-6 flex justify-end space-x-3">
+            <button
+              type="button"
+              onClick={() => setIsCancelModalOpen(false)}
+              disabled={isCanceling}
+              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
+            >
+              Keep Subscription
+            </button>
+            <button
+              type="button"
+              onClick={handleCancelSubscription}
+              disabled={isCanceling}
+              className="px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50"
+            >
+              {isCanceling ? (
+                <span className="flex items-center">
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Canceling...
+                </span>
+              ) : (
+                'Cancel Subscription'
+              )}
+            </button>
+          </div>
+        </Dialog.Panel>
+      </div>
+    </Dialog>
+  );
+
+  const renderCancelButton = () => (
+    <Button
+      variant="destructive"
+      onClick={() => setIsCancelModalOpen(true)}
+      disabled={!subscription?.is_active}
+      className="w-full sm:w-auto"
+    >
+      {subscription?.is_active === false ? 'Subscription Canceled' : 'Cancel Subscription'}
+    </Button>
+  );
 
   if (loading) {
     return (
@@ -139,6 +220,8 @@ const Premium = () => {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <CancelSubscriptionModal />
+
       {/* Hero Section */}
       <div className="text-center mb-16">
         <h1 className="text-4xl font-bold text-gray-900 mb-4">
@@ -195,14 +278,7 @@ const Premium = () => {
                   Enjoying all premium features including unlimited cards, advanced analytics, and priority support.
                 </p>
               </div>
-              <Button 
-                onClick={handleCancelSubscription}
-                variant="destructive"
-                className="w-full max-w-md"
-              >
-                <X className="w-4 h-4 mr-2" />
-                Cancel Subscription
-              </Button>
+              {renderCancelButton()}
               <p className="text-xs text-gray-500">
                 You will retain access to premium features until the end of your billing period.
               </p>
