@@ -339,15 +339,21 @@ export const backendApi = {
 
   async getSharedCollection(userId: string, params: Record<string, string> = {}) {
     const searchParams = new URLSearchParams(params);
-    const url = `${API_BASE_URL}/shared/collection/${userId}/${searchParams.toString() ? '?' + searchParams.toString() : ''}`;
+    const url = `${API_BASE_URL}/shared/collection/${userId}/${searchParams.toString() ? '?' + searchParams.toString() : ''}`.replace('//?', '?');
     const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`Failed to fetch shared collection: ${response.statusText}`);
+    }
     return response.json();
   },
 
   async getSharedWishlist(userId: string, params: Record<string, string> = {}) {
     const searchParams = new URLSearchParams(params);
-    const url = `${API_BASE_URL}/shared/wishlist/${userId}/${searchParams.toString() ? '?' + searchParams.toString() : ''}`;
+    const url = `${API_BASE_URL}/shared/wishlist/${userId}/${searchParams.toString() ? '?' + searchParams.toString() : ''}`.replace('//?', '?');
     const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`Failed to fetch shared wishlist: ${response.statusText}`);
+    }
     return response.json();
   },
 

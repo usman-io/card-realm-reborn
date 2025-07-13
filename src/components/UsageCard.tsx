@@ -11,6 +11,7 @@ interface UsageCardProps {
   usagePercentage: number;
   cardsRemaining: number;
   planName: string;
+  sharedView?: boolean; // New prop to indicate if this is a shared view
 }
 
 export const UsageCard: React.FC<UsageCardProps> = ({
@@ -18,8 +19,25 @@ export const UsageCard: React.FC<UsageCardProps> = ({
   totalCards,
   usagePercentage,
   cardsRemaining,
-  planName
+  planName,
+  sharedView = false
 }) => {
+  if (sharedView) {
+    return (
+      <Card className="border-gray-200">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm font-medium">Collection</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="text-2xl font-bold">{totalCards} cards</div>
+          <p className="text-xs text-muted-foreground mt-1">
+            {isPremium ? 'Premium collection' : 'Free collection'}
+          </p>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <Card className={isPremium ? 'border-yellow-200 bg-gradient-to-br from-yellow-50 to-orange-50' : 'border-gray-200'}>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">

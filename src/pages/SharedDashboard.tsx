@@ -52,26 +52,44 @@ const SharedDashboard = () => {
           backendApi.getSharedDashboardAnalytics(userId)
         ]);
 
+        // Handle collection response - check both direct array and paginated results
+        const collectionItems = Array.isArray(collectionResponse) 
+          ? collectionResponse 
+          : (collectionResponse.results || []);
+          
         // Fetch card data for recent collection items
-        const collectionArray = Array.isArray(collectionResponse.results) ? collectionResponse.results : [];
         const collectionWithCards = await Promise.all(
-          collectionArray.slice(0, 4).map(async (item) => {
-            const cardData = await fetchCardData(item.card_id);
-            return { ...item, cardData };
+          collectionItems.slice(0, 4).map(async (item) => {
+            try {
+              const cardData = await fetchCardData(item.card_id);
+              return { ...item, cardData };
+            } catch (error) {
+              console.error(`Error fetching card data for ${item.card_id}:`, error);
+              return { ...item, cardData: null };
+            }
           })
         );
+
+        // Handle wishlist response - check both direct array and paginated results
+        const wishlistItems = Array.isArray(wishlistResponse)
+          ? wishlistResponse
+          : (wishlistResponse.results || []);
 
         // Fetch card data for recent wishlist items
-        const wishlistArray = Array.isArray(wishlistResponse.results) ? wishlistResponse.results : [];
         const wishlistWithCards = await Promise.all(
-          wishlistArray.slice(0, 4).map(async (item) => {
-            const cardData = await fetchCardData(item.card_id);
-            return { ...item, cardData };
+          wishlistItems.slice(0, 4).map(async (item) => {
+            try {
+              const cardData = await fetchCardData(item.card_id);
+              return { ...item, cardData };
+            } catch (error) {
+              console.error(`Error fetching card data for ${item.card_id}:`, error);
+              return { ...item, cardData: null };
+            }
           })
         );
 
-        setCollection(collectionWithCards);
-        setWishlist(wishlistWithCards);
+        setCollection(collectionWithCards.filter(item => item));
+        setWishlist(wishlistWithCards.filter(item => item));
         setAnalytics(analyticsResponse);
       } catch (error) {
         console.error('Error fetching shared dashboard data:', error);
@@ -125,6 +143,7 @@ const SharedDashboard = () => {
           usagePercentage={analytics?.usage_percentage || 0}
           cardsRemaining={analytics?.cards_remaining || 0}
           planName={analytics?.plan_name || 'Free'}
+          sharedView={true}
         />
 
         <Card>
@@ -172,7 +191,7 @@ const SharedDashboard = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {collection.length === 0 ? (
+              {!collection || collection.length === 0 ? (
                 <div className="text-center py-8 text-gray-500">
                   <p>No cards in collection.</p>
                 </div>
@@ -188,6 +207,17 @@ const SharedDashboard = () => {
                               src={item.cardData.images.small}
                               alt={item.cardData.name || `Card ${item.card_id}`}
                               className="w-24 h-32 object-cover rounded-lg shadow-md"
+                              onError={(e) => {
+                                // Fallback if image fails to load
+                                const target = e.target as HTMLImageElement;
+                                target.onerror = null;
+                                target.src = '';
+                                target.parentElement!.innerHTML = `
+                                  <div class="w-24 h-32 bg-gray-200 rounded-lg flex items-center justify-center">
+                                    <span class="text-gray-500 text-xs">No Image</span>
+                                  </div>
+                                `;
+                              }}
                             />
                           ) : (
                             <div className="w-24 h-32 bg-gray-200 rounded-lg flex items-center justify-center">
@@ -202,11 +232,11 @@ const SharedDashboard = () => {
                             {item.cardData?.name || `Card ${item.card_id}`}
                           </p>
                           <div className="flex flex-wrap justify-center gap-1 mb-2">
-                            <Badge variant="outline" className="text-xs">Qty: {item.quantity}</Badge>
-                            <Badge variant="outline" className="text-xs">{item.condition}</Badge>
+                            <Badge variant="outline" className="text-xs">Qty: {item.quantity || 1}</Badge>
+                            <Badge variant="outline" className="text-xs">{item.condition || 'N/A'}</Badge>
                           </div>
                           <p className="text-xs text-gray-500">
-                            {new Date(item.added_date).toLocaleDateString()}
+                            {item.added_date ? new Date(item.added_date).toLocaleDateString() : ''}
                           </p>
                         </div>
                       </div>
@@ -227,7 +257,7 @@ const SharedDashboard = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {wishlist.length === 0 ? (
+              {!wishlist || wishlist.length === 0 ? (
                 <div className="text-center py-8 text-gray-500">
                   <p>No cards in wishlist.</p>
                 </div>
@@ -243,6 +273,17 @@ const SharedDashboard = () => {
                               src={item.cardData.images.small}
                               alt={item.cardData.name || `Card ${item.card_id}`}
                               className="w-24 h-32 object-cover rounded-lg shadow-md"
+                              onError={(e) => {
+                                // Fallback if image fails to load
+                                const target = e.target as HTMLImageElement;
+                                target.onerror = null;
+                                target.src = '';
+                                target.parentElement!.innerHTML = `
+                                  <div class="w-24 h-32 bg-gray-200 rounded-lg flex items-center justify-center">
+                                    <span class="text-gray-500 text-xs">No Image</span>
+                                  </div>
+                                `;
+                              }}
                             />
                           ) : (
                             <div className="w-24 h-32 bg-gray-200 rounded-lg flex items-center justify-center">
@@ -258,12 +299,17 @@ const SharedDashboard = () => {
                           </p>
                           <div className="flex justify-center mb-2">
                             <Badge variant="outline" className="text-xs">
-                              {item.priority} Priority
+                              {item.priority || 'Normal'} Priority
                             </Badge>
                           </div>
                           <p className="text-xs text-gray-500">
-                            {new Date(item.added_date).toLocaleDateString()}
+                            {item.added_date ? new Date(item.added_date).toLocaleDateString() : ''}
                           </p>
+                          {item.notes && (
+                            <p className="text-xs text-gray-500 mt-1 line-clamp-2">
+                              {item.notes}
+                            </p>
+                          )}
                         </div>
                       </div>
                     </div>

@@ -315,33 +315,26 @@ def shared_collection(request, user_id):
     """Get shared collection for a specific user (public access)"""
     try:
         user = get_object_or_404(User, id=user_id)
+        collection_items = Collection.objects.filter(user=user).order_by('-added_date')
+        
+        # Apply pagination
         paginator = CustomPageNumberPagination()
+        page = paginator.paginate_queryset(collection_items, request)
         
-        # Get query parameters
-        search_query = request.query_params.get('search', '')
-        card_type = request.query_params.get('type', '')
+        if page is not None:
+            serializer = CollectionSerializer(page, many=True)
+            return paginator.get_paginated_response(serializer.data)
         
-        # Build base query
-        queryset = Collection.objects.filter(user=user).order_by('-added_date')
-        
-        # Apply filters
-        if search_query:
-            queryset = queryset.filter(
-                Q(card__name__icontains=search_query) |
-                Q(card__set__name__icontains=search_query) |
-                Q(notes__icontains=search_query)
-            )
-            
-        if card_type:
-            queryset = queryset.filter(card__types__icontains=card_type.lower())
-        
-        # Paginate and return results
-        page = paginator.paginate_queryset(queryset, request)
-        serializer = CollectionSerializer(page, many=True)
-        return paginator.get_paginated_response(serializer.data)
-        
-    except User.DoesNotExist:
-        return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+        # Fallback if pagination is not used
+        serializer = CollectionSerializer(collection_items, many=True)
+        return Response({
+            'count': len(serializer.data),
+            'next': None,
+            'previous': None,
+            'results': serializer.data
+        })
+    except Exception as e:
+        return Response({'error': 'Collection not found'}, status=status.HTTP_404_NOT_FOUND)
 
 @api_view(['GET'])
 @permission_classes([permissions.AllowAny])
@@ -349,29 +342,26 @@ def shared_wishlist(request, user_id):
     """Get shared wishlist for a specific user (public access)"""
     try:
         user = get_object_or_404(User, id=user_id)
+        wishlist_items = Wishlist.objects.filter(user=user).order_by('-added_date')
+        
+        # Apply pagination
         paginator = CustomPageNumberPagination()
+        page = paginator.paginate_queryset(wishlist_items, request)
         
-        # Get query parameters
-        search_query = request.query_params.get('search', '')
+        if page is not None:
+            serializer = WishlistSerializer(page, many=True)
+            return paginator.get_paginated_response(serializer.data)
         
-        # Build base query
-        queryset = Wishlist.objects.filter(user=user).order_by('-added_date')
-        
-        # Apply search filter
-        if search_query:
-            queryset = queryset.filter(
-                Q(card__name__icontains=search_query) |
-                Q(card__set__name__icontains=search_query) |
-                Q(notes__icontains=search_query)
-            )
-        
-        # Paginate and return results
-        page = paginator.paginate_queryset(queryset, request)
-        serializer = WishlistSerializer(page, many=True)
-        return paginator.get_paginated_response(serializer.data)
-        
-    except User.DoesNotExist:
-        return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+        # Fallback if pagination is not used
+        serializer = WishlistSerializer(wishlist_items, many=True)
+        return Response({
+            'count': len(serializer.data),
+            'next': None,
+            'previous': None,
+            'results': serializer.data
+        })
+    except Exception as e:
+        return Response({'error': 'Wishlist not found'}, status=status.HTTP_404_NOT_FOUND)
 
 @api_view(['GET'])
 @permission_classes([permissions.AllowAny])
