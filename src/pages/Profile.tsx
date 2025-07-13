@@ -21,7 +21,9 @@ const Profile = () => {
     confirmPassword: ''
   });
   const [profileImage, setProfileImage] = useState<File | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(
+    user?.profile_picture ? `http://localhost:8000${user.profile_picture}` : null
+  );
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -37,6 +39,11 @@ const Profile = () => {
       setProfileImage(file);
       const url = URL.createObjectURL(file);
       setPreviewUrl(url);
+      
+      // Revoke the object URL when component unmounts or when a new file is selected
+      return () => {
+        URL.revokeObjectURL(url);
+      };
     }
   };
 
@@ -46,10 +53,9 @@ const Profile = () => {
 
     setLoading(true);
     try {
-      const updateData: any = {
-        first_name: profileData.first_name,
-        last_name: profileData.last_name
-      };
+      const formData = new FormData();
+      formData.append('first_name', profileData.first_name);
+      formData.append('last_name', profileData.last_name);
 
       if (profileData.newPassword) {
         if (profileData.newPassword !== profileData.confirmPassword) {
@@ -60,19 +66,29 @@ const Profile = () => {
           });
           return;
         }
-        updateData.password = profileData.newPassword;
+        formData.append('password', profileData.newPassword);
+      }
+
+      // Add profile picture if selected
+      if (profileImage) {
+        formData.append('profile_picture', profileImage);
       }
 
       const response = await fetch('http://localhost:8000/api/auth/profile/', {
         method: 'PUT',
         headers: {
-          'Content-Type': 'application/json',
           'Authorization': `Token ${token}`
+          // Don't set Content-Type header, let the browser set it with the correct boundary
         },
-        body: JSON.stringify(updateData)
+        body: formData
       });
 
       if (response.ok) {
+        const userData = await response.json();
+        // Update the preview URL if a new image was uploaded
+        if (userData.profile_picture) {
+          setPreviewUrl(`http://localhost:8000${userData.profile_picture}`);
+        }
         toast({
           title: "Success",
           description: "Profile updated successfully"
@@ -84,6 +100,8 @@ const Profile = () => {
           newPassword: '',
           confirmPassword: ''
         }));
+        // Refresh user data to get the latest from the server
+        await refreshUserData();
       } else {
         throw new Error('Failed to update profile');
       }
@@ -103,6 +121,28 @@ const Profile = () => {
       return `${user.first_name[0]}${user.last_name[0]}`.toUpperCase();
     }
     return user?.email?.[0]?.toUpperCase() || 'U';
+  };
+  
+  // Refresh user data after update
+  const refreshUserData = async () => {
+    try {
+      const response = await fetch('http://localhost:8000/api/auth/profile/', {
+        headers: {
+          'Authorization': `Token ${token}`
+        }
+      });
+      if (response.ok) {
+        const userData = await response.json();
+        // Update the user context with the new data
+        // This assumes your AuthContext has a way to update the user
+        // You might need to adjust this based on your actual AuthContext implementation
+        if (userData.profile_picture) {
+          setPreviewUrl(`http://localhost:8000${userData.profile_picture}`);
+        }
+      }
+    } catch (error) {
+      console.error('Error refreshing user data:', error);
+    }
   };
 
   return (

@@ -48,9 +48,12 @@ class LoginView(APIView):
             status=status.HTTP_400_BAD_REQUEST
         )
 
+from rest_framework.parsers import MultiPartParser, JSONParser
+
 class ProfileView(APIView):
     authentication_classes = [TokenAuthentication]
     permission_classes = [permissions.IsAuthenticated]
+    parser_classes = [MultiPartParser, JSONParser]
     
     def get(self, request):
         serializer = UserProfileSerializer(request.user)
@@ -58,7 +61,15 @@ class ProfileView(APIView):
     
     def put(self, request):
         user = request.user
-        serializer = UserProfileSerializer(user, data=request.data, partial=True)
+        # Create a mutable copy of the request data
+        data = request.data.copy()
+        # If there's a file, it will be in request.FILES
+        serializer = UserProfileSerializer(
+            user, 
+            data=data, 
+            partial=True,
+            context={'request': request}  # Pass request to access FILES in serializer
+        )
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data, status=status.HTTP_200_OK)

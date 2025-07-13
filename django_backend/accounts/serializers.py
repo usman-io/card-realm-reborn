@@ -56,23 +56,29 @@ class RegisterSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(str(e))
 
 class UserProfileSerializer(serializers.ModelSerializer):
-    email = serializers.EmailField(source='user.email', read_only=True)
-    date_joined = serializers.DateTimeField(source='user.date_joined', read_only=True)
+    email = serializers.EmailField(read_only=True)
+    date_joined = serializers.DateTimeField(read_only=True)
+    profile_picture = serializers.ImageField(required=False, allow_null=True)
     
     class Meta:
         model = User
         fields = [
             'id',
-            'username',
             'email',
             'first_name',
             'last_name',
             'date_joined',
             'is_active',
+            'profile_picture',
         ]
-        read_only_fields = ['id', 'username', 'date_joined', 'is_active']
+        read_only_fields = ['id', 'email', 'date_joined', 'is_active']
     
     def update(self, instance, validated_data):
+        # Handle profile picture separately as it comes from request.FILES
+        profile_picture = self.context['request'].FILES.get('profile_picture')
+        if profile_picture:
+            instance.profile_picture = profile_picture
+        
         # Update the basic user fields
         instance.first_name = validated_data.get('first_name', instance.first_name)
         instance.last_name = validated_data.get('last_name', instance.last_name)

@@ -1,10 +1,20 @@
 from django.contrib.auth.models import AbstractUser, UserManager
 from django.db import models
 
+def user_profile_picture_path(instance, filename):
+    # File will be uploaded to MEDIA_ROOT/profile_pictures/user_<id>/<filename>
+    return f'profile_pictures/user_{instance.id}/{filename}'
+
 class User(AbstractUser):
     email = models.EmailField(unique=True)
     first_name = models.CharField(max_length=30)
     last_name = models.CharField(max_length=30)
+    profile_picture = models.ImageField(
+        upload_to=user_profile_picture_path,
+        null=True,
+        blank=True,
+        default=None
+    )
     
     # Add custom related_name to avoid clashes
     groups = models.ManyToManyField(

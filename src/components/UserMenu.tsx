@@ -28,11 +28,22 @@ const UserMenu = () => {
     return user?.email?.[0]?.toUpperCase() || 'U';
   };
 
+  // Get the full URL for the profile picture if it exists
+  const getProfilePictureUrl = () => {
+    if (!user?.profile_picture) return undefined;
+    // Check if it's already a full URL
+    if (user.profile_picture.startsWith('http')) {
+      return user.profile_picture;
+    }
+    // Otherwise, prepend the base URL
+    return `http://localhost:8000${user.profile_picture}`;
+  };
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger className="focus:outline-none">
         <Avatar className="h-8 w-8 cursor-pointer hover:ring-2 hover:ring-blue-500 hover:ring-offset-2 transition-all">
-          <AvatarImage src={undefined} />
+          <AvatarImage src={getProfilePictureUrl()} />
           <AvatarFallback className="text-sm font-medium">
             {getUserInitials()}
           </AvatarFallback>
@@ -40,8 +51,8 @@ const UserMenu = () => {
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-56">
         <div className="flex items-center justify-start gap-2 p-2">
-          <Avatar className="h-8 w-8">
-            <AvatarImage src={undefined} />
+          <Avatar className="h-10 w-10">
+            <AvatarImage src={getProfilePictureUrl()} />
             <AvatarFallback className="text-sm">
               {getUserInitials()}
             </AvatarFallback>
