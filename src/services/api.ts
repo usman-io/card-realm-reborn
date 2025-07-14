@@ -8,7 +8,12 @@ const POKEMON_API_KEY = import.meta.env.VITE_POKEMON_API_KEY;
 // Pokemon TCG API calls
 export const pokemonApi = {
   async getCards(params: Record<string, string> = {}) {
-    const searchParams = new URLSearchParams(params);
+    const defaultParams = {
+      page: '1',
+      pageSize: '20',
+      ...params,
+    };
+    const searchParams = new URLSearchParams(defaultParams);
     const response = await fetch(`${POKEMON_API_BASE}/cards?${searchParams}`, {
       headers: {
         'X-Api-Key': POKEMON_API_KEY || '',
@@ -27,7 +32,12 @@ export const pokemonApi = {
   },
 
   async getSets(params: Record<string, string> = {}) {
-    const searchParams = new URLSearchParams(params);
+    const defaultParams = {
+      page: '1',
+      pageSize: '20',
+      ...params,
+    };
+    const searchParams = new URLSearchParams(defaultParams);
     const response = await fetch(`${POKEMON_API_BASE}/sets?${searchParams}`, {
       headers: {
         'X-Api-Key': POKEMON_API_KEY || '',

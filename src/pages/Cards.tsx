@@ -46,7 +46,7 @@ const Cards = () => {
 
   const fetchSets = async () => {
     try {
-      const response = await pokemonApi.getSets({ orderBy: '-releaseDate', pageSize: '100' });
+      const response = await pokemonApi.getSets({ orderBy: '-releaseDate', pageSize: '30' });
       setSets(response.data || []);
     } catch (error) {
       console.error('Error fetching sets:', error);
@@ -58,7 +58,7 @@ const Cards = () => {
     try {
       const params: Record<string, string> = {
         page: pageNum.toString(),
-        pageSize: '50',
+        pageSize: '30',
         orderBy: sortBy,
       };
 
@@ -92,7 +92,7 @@ const Cards = () => {
       const response = await pokemonApi.getCards(params);
       setCards(response.data || []);
       setTotalCount(response.totalCount || 0);
-      setTotalPages(Math.ceil((response.totalCount || 0) / 50));
+      setTotalPages(Math.ceil((response.totalCount || 0) / 30));
     } catch (error) {
       console.error('Error fetching cards:', error);
       setCards([]);

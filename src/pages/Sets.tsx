@@ -34,11 +34,11 @@ const Sets = () => {
         const response = await pokemonApi.getSets({ 
           orderBy: '-releaseDate',
           page: page.toString(),
-          pageSize: '50'
+          pageSize: '30'
         });
         setSets(response.data);
         setTotalCount(response.totalCount || response.data.length);
-        setTotalPages(Math.ceil((response.totalCount || response.data.length) / 50));
+        setTotalPages(Math.ceil((response.totalCount || response.data.length) / 30));
         
         // Extract unique series with proper Set typing
         const seriesSet = new Set<string>(response.data.map((set: PokemonSet) => set.series));
