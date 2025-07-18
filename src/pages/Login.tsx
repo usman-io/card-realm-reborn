@@ -38,10 +38,10 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <Card className="w-full max-w-md">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-brand-blue/5 to-brand-purple/5 py-12 px-4 sm:px-6 lg:px-8">
+      <Card className="w-full max-w-md border-brand-blue/20 shadow-lg">
         <CardHeader className="text-center">
-          <CardTitle className="text-2xl font-bold">Sign in to your account</CardTitle>
+          <CardTitle className="text-2xl font-bold text-brand-dark-blue">Sign in to your account</CardTitle>
           <CardDescription>
             Enter your email and password to access your collection
           </CardDescription>
@@ -49,7 +49,7 @@ const Login = () => {
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <Label htmlFor="email">Email address</Label>
+              <Label htmlFor="email" className="text-brand-dark-blue">Email address</Label>
               <Input
                 id="email"
                 type="email"
@@ -57,10 +57,11 @@ const Login = () => {
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 placeholder="Enter your email"
+                className="border-brand-blue/20 focus:border-brand-blue"
               />
             </div>
             <div>
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password" className="text-brand-dark-blue">Password</Label>
               <Input
                 id="password"
                 type="password"
@@ -68,16 +69,21 @@ const Login = () => {
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 placeholder="Enter your password"
+                className="border-brand-blue/20 focus:border-brand-blue"
               />
             </div>
-            <Button type="submit" className="w-full" disabled={loading}>
+            <Button 
+              type="submit" 
+              className="w-full bg-brand-blue hover:bg-brand-dark-blue text-white" 
+              disabled={loading}
+            >
               {loading ? 'Signing in...' : 'Sign in'}
             </Button>
           </form>
           <div className="mt-6 text-center">
             <p className="text-sm text-gray-600">
               Don't have an account?{' '}
-              <Link to="/register" className="text-blue-600 hover:text-blue-500 font-medium">
+              <Link to="/register" className="text-brand-blue hover:text-brand-purple font-medium transition-colors">
                 Sign up here
               </Link>
             </p>

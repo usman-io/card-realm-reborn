@@ -26,21 +26,21 @@ const Header = () => {
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <Link to="/" className="flex-shrink-0">
-            <div className="text-2xl font-bold text-blue-600">Pokédex</div>
+            <div className="text-2xl font-bold text-brand-blue">Pokédex</div>
           </Link>
 
           {/* Desktop Navigation */}
           <nav className="hidden md:flex space-x-8">
-            <Link to="/dashboard" className="text-gray-700 hover:text-blue-600 px-3 py-2 text-sm font-medium">
+            <Link to="/dashboard" className="text-gray-700 hover:text-brand-blue px-3 py-2 text-sm font-medium transition-colors">
               Dashboard
             </Link>
-            <Link to="/sets" className="text-gray-700 hover:text-blue-600 px-3 py-2 text-sm font-medium">
+            <Link to="/sets" className="text-gray-700 hover:text-brand-blue px-3 py-2 text-sm font-medium transition-colors">
               Sets
             </Link>
-            <Link to="/cards" className="text-gray-700 hover:text-blue-600 px-3 py-2 text-sm font-medium">
+            <Link to="/cards" className="text-gray-700 hover:text-brand-blue px-3 py-2 text-sm font-medium transition-colors">
               Cards
             </Link>
-            <Link to="/premium" className="text-gray-700 hover:text-blue-600 px-3 py-2 text-sm font-medium">
+            <Link to="/premium" className="text-brand-gold hover:text-brand-purple px-3 py-2 text-sm font-medium font-semibold transition-colors">
               Premium
             </Link>
           </nav>
@@ -53,13 +53,13 @@ const Header = () => {
                 placeholder="Search cards..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pr-10"
+                className="pr-10 border-brand-blue/20 focus:border-brand-blue"
               />
               <Button
                 type="submit"
                 size="sm"
-                className="absolute right-1 top-1 h-8 w-8 p-0"
-                variant="ghost"
+                className="absolute right-1 top-1 h-8 w-8 p-0 bg-brand-blue hover:bg-brand-dark-blue"
+                variant="default"
               >
                 <Search className="h-4 w-4" />
               </Button>
@@ -73,12 +73,12 @@ const Header = () => {
             ) : (
               <div className="flex items-center space-x-2">
                 <Link to="/login">
-                  <Button variant="outline" size="sm">
+                  <Button variant="outline" size="sm" className="border-brand-blue text-brand-blue hover:bg-brand-blue hover:text-white">
                     Login
                   </Button>
                 </Link>
                 <Link to="/register">
-                  <Button size="sm">
+                  <Button size="sm" className="bg-brand-blue hover:bg-brand-dark-blue">
                     Sign Up
                   </Button>
                 </Link>
@@ -89,7 +89,7 @@ const Header = () => {
             <Button
               variant="ghost"
               size="sm"
-              className="md:hidden"
+              className="md:hidden hover:bg-brand-blue/10"
               onClick={() => setIsMenuOpen(!isMenuOpen)}
             >
               <Menu className="h-5 w-5" />
@@ -108,13 +108,13 @@ const Header = () => {
                     placeholder="Search cards..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pr-10"
+                    className="pr-10 border-brand-blue/20 focus:border-brand-blue"
                   />
                   <Button
                     type="submit"
                     size="sm"
-                    className="absolute right-1 top-1 h-8 w-8 p-0"
-                    variant="ghost"
+                    className="absolute right-1 top-1 h-8 w-8 p-0 bg-brand-blue hover:bg-brand-dark-blue"
+                    variant="default"
                   >
                     <Search className="h-4 w-4" />
                   </Button>
@@ -122,28 +122,28 @@ const Header = () => {
               </form>
               <Link
                 to="/dashboard"
-                className="block px-3 py-2 text-base font-medium text-gray-700 hover:text-blue-600"
+                className="block px-3 py-2 text-base font-medium text-gray-700 hover:text-brand-blue transition-colors"
                 onClick={() => setIsMenuOpen(false)}
               >
                 Dashboard
               </Link>
               <Link
                 to="/sets"
-                className="block px-3 py-2 text-base font-medium text-gray-700 hover:text-blue-600"
+                className="block px-3 py-2 text-base font-medium text-gray-700 hover:text-brand-blue transition-colors"
                 onClick={() => setIsMenuOpen(false)}
               >
                 Sets
               </Link>
               <Link
                 to="/cards"
-                className="block px-3 py-2 text-base font-medium text-gray-700 hover:text-blue-600"
+                className="block px-3 py-2 text-base font-medium text-gray-700 hover:text-brand-blue transition-colors"
                 onClick={() => setIsMenuOpen(false)}
               >
                 Cards
               </Link>
               <Link
                 to="/premium"
-                className="block px-3 py-2 text-base font-medium text-gray-700 hover:text-blue-600"
+                className="block px-3 py-2 text-base font-medium text-brand-gold hover:text-brand-purple font-semibold transition-colors"
                 onClick={() => setIsMenuOpen(false)}
               >
                 Premium
