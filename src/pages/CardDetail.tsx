@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -9,11 +8,16 @@ import { pokemonApi } from '@/services/api';
 import { PokemonCard } from '@/types/api';
 import { ArrowLeft, Heart, Plus, Star, TrendingUp } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import AddToCollectionDialog from '@/components/AddToCollectionDialog';
+import AddToWishlistDialog from '@/components/AddToWishlistDialog';
 
 const CardDetail = () => {
   const { id } = useParams<{ id: string }>();
   const [card, setCard] = useState<PokemonCard | null>(null);
   const [loading, setLoading] = useState(true);
+  const [selectedCard, setSelectedCard] = useState<PokemonCard | null>(null);
+  const [showCollectionDialog, setShowCollectionDialog] = useState(false);
+  const [showWishlistDialog, setShowWishlistDialog] = useState(false);
   const { isAuthenticated } = useAuth();
 
   useEffect(() => {
@@ -33,10 +37,20 @@ const CardDetail = () => {
     fetchCard();
   }, [id]);
 
+  const addToCollection = (card: PokemonCard) => {
+    setSelectedCard(card);
+    setShowCollectionDialog(true);
+  };
+
+  const addToWishlist = (card: PokemonCard) => {
+    setSelectedCard(card);
+    setShowWishlistDialog(true);
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
       </div>
     );
   }
@@ -45,7 +59,7 @@ const CardDetail = () => {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900 mb-4">Card Not Found</h1>
+          <h1 className="text-2xl font-bold text-foreground mb-4">Card Not Found</h1>
           <Link to="/cards">
             <Button>Back to Cards</Button>
           </Link>
@@ -57,7 +71,7 @@ const CardDetail = () => {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {/* Back Button */}
-      <Link to="/cards" className="inline-flex items-center text-blue-600 hover:text-blue-800 mb-6">
+      <Link to="/cards" className="inline-flex items-center text-primary hover:text-primary/80 mb-6">
         <ArrowLeft className="w-4 h-4 mr-2" />
         Back to Cards
       </Link>
@@ -65,7 +79,7 @@ const CardDetail = () => {
       <div className="grid lg:grid-cols-2 gap-8">
         {/* Card Image */}
         <div className="space-y-4">
-          <div className="bg-white rounded-lg shadow-sm p-6">
+          <div className="bg-card rounded-lg shadow-sm p-6">
             <img
               src={card.images.large}
               alt={card.name}
@@ -75,11 +89,18 @@ const CardDetail = () => {
           
           {isAuthenticated && (
             <div className="flex gap-4">
-              <Button className="flex-1">
+              <Button 
+                className="flex-1 bg-primary hover:bg-primary/90"
+                onClick={() => addToCollection(card)}
+              >
                 <Plus className="w-4 h-4 mr-2" />
                 Add to Collection
               </Button>
-              <Button variant="outline" className="flex-1">
+              <Button 
+                variant="outline" 
+                className="flex-1 border-red-500 text-red-500 hover:bg-red-50"
+                onClick={() => addToWishlist(card)}
+              >
                 <Heart className="w-4 h-4 mr-2" />
                 Add to Wishlist
               </Button>
@@ -90,15 +111,15 @@ const CardDetail = () => {
         {/* Card Details */}
         <div className="space-y-6">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">{card.name}</h1>
+            <h1 className="text-3xl font-bold text-foreground mb-2">{card.name}</h1>
             <div className="flex items-center gap-2 mb-4">
               <Badge variant="secondary">{card.supertype}</Badge>
               {card.subtypes?.map((subtype) => (
                 <Badge key={subtype} variant="outline">{subtype}</Badge>
               ))}
             </div>
-            <p className="text-gray-600">
-              <Link to={`/sets/${card.set.id}`} className="hover:text-blue-600">
+            <p className="text-muted-foreground">
+              <Link to={`/sets/${card.set.id}`} className="hover:text-primary">
                 {card.set.name}
               </Link>
               {' • '}#{card.number} of {card.set.total}
@@ -316,6 +337,22 @@ const CardDetail = () => {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Dialogs */}
+      {selectedCard && (
+        <>
+          <AddToCollectionDialog
+            open={showCollectionDialog}
+            onOpenChange={setShowCollectionDialog}
+            card={selectedCard}
+          />
+          <AddToWishlistDialog
+            open={showWishlistDialog}
+            onOpenChange={setShowWishlistDialog}
+            card={selectedCard}
+          />
+        </>
+      )}
     </div>
   );
 };

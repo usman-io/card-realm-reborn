@@ -242,7 +242,7 @@ const Cards = () => {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
       </div>
     );
   }
@@ -458,11 +458,11 @@ const Cards = () => {
               </CardHeader>
               <CardContent className="p-2">
                 <Link to={`/cards/${card.id}`}>
-                  <h3 className="font-medium text-sm truncate hover:text-blue-600">
+                  <h3 className="font-medium text-sm truncate hover:text-primary">
                     {card.name}
                   </h3>
                 </Link>
-                <p className="text-xs text-gray-500 truncate">{card.set.name}</p>
+                <p className="text-xs text-muted-foreground truncate">{card.set.name}</p>
                 <div className="flex items-center justify-between mt-2">
                   <Badge variant="secondary" className="text-xs">
                     {card.rarity}
@@ -472,18 +472,28 @@ const Cards = () => {
                       <Button
                         size="sm"
                         variant="ghost"
-                        className="h-6 w-6 p-0"
-                        onClick={() => addToCollection(card)}
+                        className="h-7 w-7 p-0 hover:bg-primary/10"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          addToCollection(card);
+                        }}
+                        title="Add to Collection"
                       >
-                        <Plus className="h-3 w-3" />
+                        <Plus className="h-4 w-4 text-primary" />
                       </Button>
                       <Button
                         size="sm"
                         variant="ghost"
-                        className="h-6 w-6 p-0"
-                        onClick={() => addToWishlist(card)}
+                        className="h-7 w-7 p-0 hover:bg-red-100"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          addToWishlist(card);
+                        }}
+                        title="Add to Wishlist"
                       >
-                        <Heart className="h-3 w-3" />
+                        <Heart className="h-4 w-4 text-red-500" />
                       </Button>
                     </div>
                   )}
@@ -507,9 +517,9 @@ const Cards = () => {
                   </Link>
                   <div className="flex-1">
                     <Link to={`/cards/${card.id}`}>
-                      <h3 className="font-medium hover:text-blue-600">{card.name}</h3>
+                      <h3 className="font-medium hover:text-primary">{card.name}</h3>
                     </Link>
-                    <p className="text-sm text-gray-600">{card.set.name}</p>
+                    <p className="text-sm text-muted-foreground">{card.set.name}</p>
                     <div className="flex items-center gap-2 mt-2">
                       <Badge variant="secondary">{card.rarity}</Badge>
                       <Badge variant="outline">#{card.number}</Badge>
@@ -529,17 +539,27 @@ const Cards = () => {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => addToCollection(card)}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          addToCollection(card);
+                        }}
+                        className="hover:bg-primary/10"
                       >
-                        <Plus className="h-4 w-4 mr-1" />
+                        <Plus className="h-4 w-4 mr-1 text-primary" />
                         Collect
                       </Button>
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => addToWishlist(card)}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          addToWishlist(card);
+                        }}
+                        className="hover:bg-red-50"
                       >
-                        <Heart className="h-4 w-4 mr-1" />
+                        <Heart className="h-4 w-4 mr-1 text-red-500" />
                         Wishlist
                       </Button>
                     </div>
