@@ -42,9 +42,9 @@ const UserMenu = () => {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger className="focus:outline-none">
-        <Avatar className="h-8 w-8 cursor-pointer hover:ring-2 hover:ring-brand-blue hover:ring-offset-2 transition-all">
+        <Avatar className="h-8 w-8 cursor-pointer hover:ring-2 hover:ring-brand-dark-blue hover:ring-offset-2 transition-all">
           <AvatarImage src={getProfilePictureUrl()} />
-          <AvatarFallback className="text-sm font-medium bg-brand-blue text-white">
+          <AvatarFallback className="text-sm font-medium bg-brand-dark-blue hover:bg-brand-dark-blue/80 text-white">
             {getUserInitials()}
           </AvatarFallback>
         </Avatar>
@@ -53,7 +53,7 @@ const UserMenu = () => {
         <div className="flex items-center justify-start gap-2 p-2">
           <Avatar className="h-10 w-10">
             <AvatarImage src={getProfilePictureUrl()} />
-            <AvatarFallback className="text-sm bg-brand-blue text-white">
+            <AvatarFallback className="text-sm bg-brand-dark-blue hover:bg-brand-dark-blue/80 text-white">
               {getUserInitials()}
             </AvatarFallback>
           </Avatar>
@@ -67,14 +67,17 @@ const UserMenu = () => {
           </div>
         </div>
         <DropdownMenuSeparator />
-        <DropdownMenuItem asChild>
-          <Link to="/profile" className="flex items-center hover:bg-brand-blue/10">
-            <User className="mr-2 h-4 w-4 text-brand-blue" />
+        <DropdownMenuItem asChild className="hover:!bg-brand-dark-blue focus:!bg-brand-dark-blue data-[highlighted]:!bg-brand-dark-blue">
+          <Link to="/dashboard/profile" className="flex items-center w-full">
+            <User className="mr-2 h-4 w-4 text-brand-white" />
             <span>Edit Profile</span>
           </Link>
         </DropdownMenuItem>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={handleLogout} className="text-red-600 hover:bg-red-50">
+        <DropdownMenuItem 
+          onClick={handleLogout} 
+          className="text-red-600 hover:!bg-brand-dark-blue focus:!bg-brand-dark-blue data-[highlighted]:!bg-brand-dark-blue"
+        >
           <LogOut className="mr-2 h-4 w-4" />
           <span>Logout</span>
         </DropdownMenuItem>

@@ -53,46 +53,48 @@ function App() {
                 <Route path="/sets/:id" element={<SetDetail />} />
                 
                 {/* Protected Routes */}
-                <Route path="/dashboard" element={
-                  <ProtectedRoute>
-                    <Dashboard />
-                  </ProtectedRoute>
-                } />
-                <Route path="/profile" element={
-                  <ProtectedRoute>
-                    <Profile />
-                  </ProtectedRoute>
-                } />
-                <Route path="/collection" element={
-                  <ProtectedRoute>
-                    <UserCollection />
-                  </ProtectedRoute>
-                } />
-                <Route path="/wishlist" element={
-                  <ProtectedRoute>
-                    <UserWishlist />
-                  </ProtectedRoute>
-                } />
-                <Route path="/graded" element={
-                  <ProtectedRoute>
-                    <UserGradedCards />
-                  </ProtectedRoute>
-                } />
-                <Route path="/activities" element={
-                  <ProtectedRoute>
-                    <Activities />
-                  </ProtectedRoute>
-                } />
-                <Route path="/premium" element={
-                  <ProtectedRoute>
-                    <Premium />
-                  </ProtectedRoute>
-                } />
-                <Route path="/payment-success" element={
-                  <ProtectedRoute>
-                    <PaymentSuccess />
-                  </ProtectedRoute>
-                } />
+                <Route path="/dashboard">
+                  <Route index element={
+                    <ProtectedRoute>
+                      <Dashboard />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="profile" element={
+                    <ProtectedRoute>
+                      <Profile />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="collection" element={
+                    <ProtectedRoute>
+                      <UserCollection />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="wishlist" element={
+                    <ProtectedRoute>
+                      <UserWishlist />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="graded" element={
+                    <ProtectedRoute>
+                      <UserGradedCards />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="activities" element={
+                    <ProtectedRoute>
+                      <Activities />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="premium" element={
+                    <ProtectedRoute>
+                      <Premium />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="payment-success" element={
+                    <ProtectedRoute>
+                      <PaymentSuccess />
+                    </ProtectedRoute>
+                  } />
+                </Route>
                 
                 {/* Public Shared Dashboard Route */}
                 <Route path="/dashboard/shared/:userId" element={<SharedDashboard />} />

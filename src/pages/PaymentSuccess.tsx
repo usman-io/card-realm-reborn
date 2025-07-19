@@ -39,7 +39,7 @@ const PaymentSuccess = () => {
             </div>
             
             {sessionId && (
-              <div className="text-xs text-gray-500 bg-gray-50 p-2 rounded">
+              <div className="text-xs text-gray-500 bg-gray-50 p-2 rounded" style={{ wordBreak: 'break-all' }}>
                 Session ID: {sessionId}
               </div>
             )}

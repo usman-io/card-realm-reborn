@@ -13,9 +13,9 @@ const Home = () => {
       {/* Hero Section */}
       <section className="relative py-20 px-4">
         <div className="max-w-7xl mx-auto text-center">
-          <h1 className="text-5xl md:text-6xl font-bold text-gray-900 mb-6">
+          <h1 className="text-5xl md:text-6xl font-bold text-gray-700 mb-6">
             Collect, Track, and Trade
-            <span className="text-blue-600 block">Pokémon Cards</span>
+            <span className="text-brand-dark-blue block">Pokémon Cards</span>
           </h1>
           <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
             The ultimate platform for Pokémon TCG collectors. Build your collection, 
@@ -24,19 +24,19 @@ const Home = () => {
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             {isAuthenticated ? (
               <Link to="/dashboard">
-                <Button size="lg" className="w-full sm:w-auto">
+                <Button size="lg" className="w-full sm:w-auto bg-brand-dark-blue hover:bg-brand-dark-blue/80">
                   Go to Dashboard
                 </Button>
               </Link>
             ) : (
               <>
                 <Link to="/register">
-                  <Button size="lg" className="w-full sm:w-auto">
+                  <Button size="lg" className="w-full sm:w-auto bg-brand-dark-blue hover:bg-brand-dark-blue/80">
                     Start Collecting
                   </Button>
                 </Link>
                 <Link to="/cards">
-                  <Button variant="outline" size="lg" className="w-full sm:w-auto">
+                  <Button variant="outline" size="lg" className="w-full sm:w-auto text-white bg-brand-dark-blue hover:bg-brand-dark-blue/80">
                     Browse Cards
                   </Button>
                 </Link>
@@ -108,7 +108,7 @@ const Home = () => {
       </section>
 
       {/* CTA Section */}
-      <section className="py-16 px-4 bg-blue-600 text-white">
+      <section className="py-16 px-4 bg-brand-dark-blue text-white">
         <div className="max-w-4xl mx-auto text-center">
           <h2 className="text-3xl font-bold mb-4">
             Ready to Start Your Collection Journey?

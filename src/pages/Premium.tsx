@@ -36,9 +36,9 @@ const Premium = () => {
     if (success === 'true') {
       // Redirect to dedicated success page
       if (sessionId) {
-        navigate(`/payment-success?session_id=${sessionId}`);
+        navigate(`/dashboard/payment-success?session_id=${sessionId}`);
       } else {
-        navigate('/payment-success');
+        navigate('/dashboard/payment-success');
       }
       return;
     } else if (canceled === 'true') {

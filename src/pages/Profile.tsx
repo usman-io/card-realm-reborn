@@ -252,7 +252,7 @@ const Profile = () => {
               </div>
 
               <div className="flex justify-end pt-4">
-                <Button type="submit" disabled={loading}>
+                <Button type="submit" disabled={loading} className="bg-brand-dark-blue hover:bg-brand-dark-blue/90">
                   {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   Update Profile
                 </Button>

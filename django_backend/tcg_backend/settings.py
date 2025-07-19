@@ -86,7 +86,7 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost:8000",
     "http://localhost:8080",
     "https://bcf06697a5ef.ngrok-free.app",
-    "http://bcf06697a5ef.ngrok-free.app"
+    "http://localhost:8081",
 ]
 
 # Pokemon TCG API
