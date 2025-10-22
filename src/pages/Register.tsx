@@ -68,7 +68,7 @@ const Register = () => {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="first_name">{t('profile.username')}</Label>
+                <Label htmlFor="first_name">{t('profile.firstName')}</Label>
                 <Input
                   id="first_name"
                   name="first_name"
@@ -76,11 +76,11 @@ const Register = () => {
                   value={formData.first_name}
                   onChange={handleChange}
                   required
-                  placeholder={t('profile.username')}
+                  placeholder={t('profile.firstName')}
                 />
               </div>
               <div>
-                <Label htmlFor="last_name">{t('profile.username')}</Label>
+                <Label htmlFor="last_name">{t('profile.lastName')}</Label>
                 <Input
                   id="last_name"
                   name="last_name"
@@ -88,7 +88,7 @@ const Register = () => {
                   value={formData.last_name}
                   onChange={handleChange}
                   required
-                  placeholder={t('profile.username')}
+                  placeholder={t('profile.lastName')}
                 />
               </div>
             </div>

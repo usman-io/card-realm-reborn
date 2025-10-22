@@ -37,7 +37,7 @@ const Home = () => {
                   </Button>
                 </Link>
                 <Link to="/cards">
-                  <Button variant="outline" size="lg" className="w-full sm:w-auto border-white text-white hover:bg-white hover:text-brand-dark-blue">
+                  <Button variant="outline" size="lg" className="w-full sm:w-auto border-white text-brand-dark-blue hover:bg-white hover:text-brand-dark-blue">
                     {t('home.browseCards')}
                   </Button>
                 </Link>
