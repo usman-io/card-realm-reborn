@@ -9,6 +9,7 @@ import { backendApi } from '@/services/api';
 import { Collection } from '@/types/api';
 import { ArrowLeft, Award, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 
 interface PaginatedResponse {
   count: number;
@@ -19,6 +20,7 @@ interface PaginatedResponse {
 
 const UserGradedCards = () => {
   const { token } = useAuth();
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [gradedCards, setGradedCards] = useState<Collection[]>([]);
   const [loading, setLoading] = useState(true);
@@ -72,7 +74,10 @@ const UserGradedCards = () => {
   if (loading && gradedCards.length === 0) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">{t('common.loading')}</p>
+        </div>
       </div>
     );
   }
@@ -87,29 +92,29 @@ const UserGradedCards = () => {
             className="flex items-center gap-2"
           >
             <ArrowLeft className="h-4 w-4" />
-            Back to Dashboard
+            {t('common.back')}
           </Button>
         </div>
         
         <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-2">
           <Award className="h-8 w-8 text-yellow-500" />
-          Graded Cards
+          {t('gradedCards.title')}
         </h1>
         <p className="text-gray-600 mt-2">
-          Your professionally graded cards ({totalCount} total)
+          {t('gradedCards.title')} ({totalCount} {t('dashboard.totalCards').toLowerCase()})
         </p>
       </div>
 
       {/* Graded Cards */}
       <Card className="mb-8">
         <CardHeader>
-          <CardTitle>Graded Collection</CardTitle>
+          <CardTitle>{t('gradedCards.title')}</CardTitle>
         </CardHeader>
         <CardContent>
           {gradedCards.length === 0 ? (
             <div className="text-center py-12 text-gray-500">
-              <p>No graded cards in your collection.</p>
-              <p className="text-sm mt-2">Add cards and mark them as graded to see them here!</p>
+              <p>{t('gradedCards.noGradedCards')}</p>
+              <p className="text-sm mt-2">{t('gradedCards.startGrading')}</p>
             </div>
           ) : (
             <div className="space-y-4">
@@ -124,7 +129,7 @@ const UserGradedCards = () => {
                       </Badge>
                     </div>
                     <div className="flex items-center gap-4 mt-2">
-                      <Badge variant="outline">Qty: {item.quantity}</Badge>
+                      <Badge variant="outline">{t('collection.quantity')}: {item.quantity}</Badge>
                       <Badge variant="outline">{item.condition}</Badge>
                       <Badge variant="outline">{item.variant}</Badge>
                       <Badge variant="outline">{item.language}</Badge>

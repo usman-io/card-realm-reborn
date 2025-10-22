@@ -4,9 +4,6 @@ from django.conf import settings
 from django.core.exceptions import ValidationError
 from accounts.models import User
 
-# Import the custom User model
-# User = settings.AUTH_USER_MODEL
-
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:

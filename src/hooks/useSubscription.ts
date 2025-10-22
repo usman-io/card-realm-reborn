@@ -25,7 +25,7 @@ export const useSubscription = () => {
     }
 
     try {
-      const response = await fetch('http://localhost:8000/api/subscription/', {
+      const response = await fetch('https://api.collectorshomebase.com/api/subscription/', {
         headers: {
           'Authorization': `Token ${token}`,
         },

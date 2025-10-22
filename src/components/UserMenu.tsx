@@ -2,6 +2,7 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTranslation } from 'react-i18next';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   DropdownMenu,
@@ -14,6 +15,7 @@ import { User, LogOut } from 'lucide-react';
 
 const UserMenu = () => {
   const { user, logout } = useAuth();
+  const { t } = useTranslation();
   const navigate = useNavigate();
 
   const handleLogout = () => {
@@ -36,7 +38,7 @@ const UserMenu = () => {
       return user.profile_picture;
     }
     // Otherwise, prepend the base URL
-    return `http://localhost:8000${user.profile_picture}`;
+    return `https://api.collectorshomebase.com${user.profile_picture}`;
   };
 
   return (
@@ -70,7 +72,7 @@ const UserMenu = () => {
         <DropdownMenuItem asChild className="hover:!bg-brand-dark-blue focus:!bg-brand-dark-blue data-[highlighted]:!bg-brand-dark-blue">
           <Link to="/dashboard/profile" className="flex items-center w-full">
             <User className="mr-2 h-4 w-4 text-brand-white" />
-            <span>Edit Profile</span>
+            <span>{t('profile.editProfile')}</span>
           </Link>
         </DropdownMenuItem>
         <DropdownMenuSeparator />
@@ -79,7 +81,7 @@ const UserMenu = () => {
           className="text-red-600 hover:!bg-brand-dark-blue focus:!bg-brand-dark-blue data-[highlighted]:!bg-brand-dark-blue"
         >
           <LogOut className="mr-2 h-4 w-4" />
-          <span>Logout</span>
+          <span>{t('userMenu.logout')}</span>
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

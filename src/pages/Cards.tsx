@@ -5,19 +5,19 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Pagination, PaginationContent, PaginationEllipsis, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '@/components/ui/pagination';
 import { pokemonApi } from '@/services/api';
-import { PokemonCard, PokemonSet } from '@/types/api';
-import { Search, Grid, List, Heart, Plus, Filter, ChevronDown, X } from 'lucide-react';
+import { PokemonCard } from '@/types/api';
+import { Search, Grid, List, Heart, Plus } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTranslation } from 'react-i18next';
 import AddToCollectionDialog from '@/components/AddToCollectionDialog';
 import AddToWishlistDialog from '@/components/AddToWishlistDialog';
 
+
 const Cards = () => {
+  const { t, i18n } = useTranslation();
   const [cards, setCards] = useState<PokemonCard[]>([]);
-  const [sets, setSets] = useState<PokemonSet[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchParams, setSearchParams] = useSearchParams();
   const [searchQuery, setSearchQuery] = useState(searchParams.get('q') || '');
@@ -26,73 +26,34 @@ const Cards = () => {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
-  const [selectedSets, setSelectedSets] = useState<string[]>([]);
-  const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
-  const [selectedRarities, setSelectedRarities] = useState<string[]>([]);
-  const [selectedSubtypes, setSelectedSubtypes] = useState<string[]>([]);
-  const [showFilters, setShowFilters] = useState(false);
+  const [pageSize, setPageSize] = useState(30);
   const [selectedCard, setSelectedCard] = useState<PokemonCard | null>(null);
   const [showCollectionDialog, setShowCollectionDialog] = useState(false);
   const [showWishlistDialog, setShowWishlistDialog] = useState(false);
   const { isAuthenticated } = useAuth();
 
-  const types = ['Colorless', 'Darkness', 'Dragon', 'Fairy', 'Fighting', 'Fire', 'Grass', 'Lightning', 'Metal', 'Psychic', 'Water'];
-  const rarities = ['Common', 'Uncommon', 'Rare', 'Rare Holo', 'Rare Holo EX', 'Rare Holo GX', 'Rare Holo V', 'Rare Holo VMAX', 'Rare Rainbow', 'Rare Secret', 'Rare Shiny', 'Rare Shiny GX', 'Rare Ultra'];
-  const subtypes = ['Basic', 'Stage 1', 'Stage 2', 'EX', 'GX', 'V', 'VMAX', 'VSTAR', 'ex', 'Supporter', 'Item', 'Stadium', 'Tool', 'Special Energy'];
-
   useEffect(() => {
-    fetchSets();
-  }, []);
-
-  const fetchSets = async () => {
-    try {
-      const response = await pokemonApi.getSets({ orderBy: '-releaseDate', pageSize: '30' });
-      setSets(response.data || []);
-    } catch (error) {
-      console.error('Error fetching sets:', error);
-    }
-  };
+    const q = searchParams.get('q') || '';
+    setSearchQuery(q);
+  }, [searchParams]);
 
   const fetchCards = async (query: string = '', pageNum: number = 1) => {
     setLoading(true);
     try {
       const params: Record<string, string> = {
         page: pageNum.toString(),
-        pageSize: '30',
+        pageSize: pageSize.toString(),
         orderBy: sortBy,
       };
 
-      // Build query string
-      const queryParts: string[] = [];
-      
       if (query.trim()) {
-        queryParts.push(`name:${query}*`);
+        params.q = `name:${query}*`;
       }
 
-      if (selectedSets.length > 0) {
-        queryParts.push(`set.id:"${selectedSets.join('" OR set.id:"')}"`);
-      }
-
-      if (selectedTypes.length > 0) {
-        queryParts.push(`types:"${selectedTypes.join('" OR types:"')}"`);
-      }
-
-      if (selectedRarities.length > 0) {
-        queryParts.push(`rarity:"${selectedRarities.join('" OR rarity:"')}"`);
-      }
-
-      if (selectedSubtypes.length > 0) {
-        queryParts.push(`subtypes:"${selectedSubtypes.join('" OR subtypes:"')}"`);
-      }
-
-      if (queryParts.length > 0) {
-        params.q = queryParts.join(' AND ');
-      }
-
-      const response = await pokemonApi.getCards(params);
+      const response = await pokemonApi.getCards(params, i18n.language);
       setCards(response.data || []);
       setTotalCount(response.totalCount || 0);
-      setTotalPages(Math.ceil((response.totalCount || 0) / 30));
+      setTotalPages(Math.ceil((response.totalCount || 0) / pageSize));
     } catch (error) {
       console.error('Error fetching cards:', error);
       setCards([]);
@@ -103,7 +64,7 @@ const Cards = () => {
 
   useEffect(() => {
     fetchCards(searchQuery, page);
-  }, [sortBy, page, selectedSets, selectedTypes, selectedRarities, selectedSubtypes]);
+  }, [searchQuery, sortBy, page, i18n.language]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -112,32 +73,7 @@ const Cards = () => {
     setSearchParams(searchQuery ? { q: searchQuery } : {});
   };
 
-  const handleFilterChange = (filterType: string, value: string, checked: boolean) => {
-    const setters = {
-      sets: setSelectedSets,
-      types: setSelectedTypes,
-      rarities: setSelectedRarities,
-      subtypes: setSelectedSubtypes,
-    };
 
-    const setter = setters[filterType as keyof typeof setters];
-    if (setter) {
-      setter(prev => 
-        checked 
-          ? [...prev, value]
-          : prev.filter(item => item !== value)
-      );
-    }
-  };
-
-  const clearFilters = () => {
-    setSelectedSets([]);
-    setSelectedTypes([]);
-    setSelectedRarities([]);
-    setSelectedSubtypes([]);
-  };
-
-  const activeFiltersCount = selectedSets.length + selectedTypes.length + selectedRarities.length + selectedSubtypes.length;
 
   const addToCollection = (card: PokemonCard) => {
     setSelectedCard(card);
@@ -156,84 +92,77 @@ const Cards = () => {
 
   const renderPaginationItems = () => {
     const items = [];
-    const maxVisiblePages = 5;
-    
-    if (totalPages <= maxVisiblePages) {
-      for (let i = 1; i <= totalPages; i++) {
-        items.push(
-          <PaginationItem key={i}>
-            <PaginationLink
-              onClick={() => handlePageChange(i)}
-              isActive={page === i}
-              className="cursor-pointer"
-            >
-              {i}
-            </PaginationLink>
-          </PaginationItem>
-        );
-      }
-    } else {
-      // Show first page
+    // Reduce visible pages on mobile
+    const maxVisiblePages = window.innerWidth < 640 ? 3 : 5;
+    let startPage = Math.max(1, Math.min(page - Math.floor(maxVisiblePages / 2), totalPages - maxVisiblePages + 1));
+    let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+
+    if (endPage - startPage + 1 < maxVisiblePages) {
+      startPage = Math.max(1, endPage - maxVisiblePages + 1);
+    }
+
+    // First page
+    if (startPage > 1) {
       items.push(
         <PaginationItem key={1}>
           <PaginationLink
             onClick={() => handlePageChange(1)}
-            isActive={page === 1}
+            isActive={1 === page}
             className="cursor-pointer"
+            aria-label={`${t('pagination.firstPage')}, ${t('pagination.page')} 1`}
           >
             1
           </PaginationLink>
         </PaginationItem>
       );
 
-      if (page > 3) {
+      if (startPage > 2) {
         items.push(
-          <PaginationItem key="ellipsis1">
-            <PaginationEllipsis />
+          <PaginationItem key="ellipsis-start">
+            <PaginationEllipsis aria-label={t('pagination.ellipsis')} />
+          </PaginationItem>
+        );
+      }
+    }
+
+    // Middle pages
+    for (let i = startPage; i <= endPage; i++) {
+      items.push(
+        <PaginationItem key={i}>
+          <PaginationLink
+            onClick={() => handlePageChange(i)}
+            isActive={i === page}
+            className="cursor-pointer"
+            aria-label={`${t('pagination.page')} ${i} ${t('pagination.of')} ${totalPages}`}
+          >
+            {i}
+          </PaginationLink>
+        </PaginationItem>
+      );
+    }
+
+    // Last page
+    if (endPage < totalPages) {
+      if (endPage < totalPages - 1) {
+        items.push(
+          <PaginationItem key="ellipsis-end">
+            <PaginationEllipsis aria-label={t('pagination.ellipsis')} />
           </PaginationItem>
         );
       }
 
-      // Show current page and surrounding pages
-      const start = Math.max(2, page - 1);
-      const end = Math.min(totalPages - 1, page + 1);
-      
-      for (let i = start; i <= end; i++) {
-        items.push(
-          <PaginationItem key={i}>
-            <PaginationLink
-              onClick={() => handlePageChange(i)}
-              isActive={page === i}
-              className="cursor-pointer"
-            >
-              {i}
-            </PaginationLink>
-          </PaginationItem>
-        );
-      }
-
-      if (page < totalPages - 2) {
-        items.push(
-          <PaginationItem key="ellipsis2">
-            <PaginationEllipsis />
-          </PaginationItem>
-        );
-      }
-
-      // Show last page
-      if (totalPages > 1) {
-        items.push(
-          <PaginationItem key={totalPages}>
-            <PaginationLink
-              onClick={() => handlePageChange(totalPages)}
-              isActive={page === totalPages}
-              className="cursor-pointer"
-            >
-              {totalPages}
-            </PaginationLink>
-          </PaginationItem>
-        );
-      }
+      items.push(
+        <PaginationItem key={totalPages}>
+          <PaginationLink
+            onClick={() => handlePageChange(totalPages)}
+            isActive={totalPages === page}
+            className="cursor-pointer"
+            aria-label={`${t('pagination.lastPage')}, ${t('pagination.page')} ${totalPages}`}
+          >
+            {totalPages}
+          </PaginationLink>
+        </PaginationItem>
+      );
     }
 
     return items;
@@ -242,7 +171,10 @@ const Cards = () => {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-gray-600">{t('common.loading')}</p>
+        </div>
       </div>
     );
   }
@@ -250,16 +182,16 @@ const Cards = () => {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-4">Pokémon Cards</h1>
+        <h1 className="text-3xl font-bold text-gray-900 mb-4">{t('cards.pokemonCards')}</h1>
         
         {/* Search and Controls */}
-        <div className="flex flex-col md:flex-row gap-4 mb-6">
-          <form onSubmit={handleSearch} className="flex-1">
+        <div className="flex flex-col gap-4 mb-6">
+          <form onSubmit={handleSearch} className="w-full">
             <div className="relative">
               <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
               <Input
                 type="text"
-                placeholder="Search cards..."
+                placeholder={t('cards.searchPlaceholder')}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-10"
@@ -267,42 +199,29 @@ const Cards = () => {
             </div>
           </form>
           
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              onClick={() => setShowFilters(!showFilters)}
-              className="relative"
-            >
-              <Filter className="h-4 w-4 mr-2" />
-              Filters
-              {activeFiltersCount > 0 && (
-                <Badge variant="secondary" className="ml-2 h-5 w-5 p-0 flex items-center justify-center text-xs">
-                  {activeFiltersCount}
-                </Badge>
-              )}
-            </Button>
-            
+          <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
             <Select value={sortBy} onValueChange={setSortBy}>
-              <SelectTrigger className="w-48">
-                <SelectValue placeholder="Sort by" />
+              <SelectTrigger className="w-full sm:w-48">
+                <SelectValue placeholder={t('cards.sortBy')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="name">Name (A-Z)</SelectItem>
-                <SelectItem value="-name">Name (Z-A)</SelectItem>
-                <SelectItem value="-releaseDate">Release Date (New)</SelectItem>
-                <SelectItem value="releaseDate">Release Date (Old)</SelectItem>
-                <SelectItem value="number">Number (Low-High)</SelectItem>
-                <SelectItem value="-number">Number (High-Low)</SelectItem>
-                <SelectItem value="hp">HP (Low-High)</SelectItem>
-                <SelectItem value="-hp">HP (High-Low)</SelectItem>
+                <SelectItem value="name">{t('cards.nameAZ')}</SelectItem>
+                <SelectItem value="-name">{t('cards.nameZA')}</SelectItem>
+                <SelectItem value="-releaseDate">{t('cards.releaseDateNew')}</SelectItem>
+                <SelectItem value="releaseDate">{t('cards.releaseDateOld')}</SelectItem>
+                <SelectItem value="number">{t('cards.numberLowHigh')}</SelectItem>
+                <SelectItem value="-number">{t('cards.numberHighLow')}</SelectItem>
+                <SelectItem value="hp">{t('cards.hpLowHigh')}</SelectItem>
+                <SelectItem value="-hp">{t('cards.hpHighLow')}</SelectItem>
               </SelectContent>
             </Select>
-            
-            <div className="flex border rounded-md">
+
+            <div className="flex border rounded-md w-full sm:w-auto justify-center">
               <Button
                 variant={displayMode === 'grid' ? 'default' : 'ghost'}
                 size="sm"
                 onClick={() => setDisplayMode('grid')}
+                className="flex-1 sm:flex-none"
               >
                 <Grid className="h-4 w-4" />
               </Button>
@@ -310,6 +229,7 @@ const Cards = () => {
                 variant={displayMode === 'list' ? 'default' : 'ghost'}
                 size="sm"
                 onClick={() => setDisplayMode('list')}
+                className="flex-1 sm:flex-none"
               >
                 <List className="h-4 w-4" />
               </Button>
@@ -317,132 +237,19 @@ const Cards = () => {
           </div>
         </div>
 
-        {/* Filters Panel */}
-        {showFilters && (
-          <Card className="mb-6">
-            <CardContent className="p-6">
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-semibold">Filters</h3>
-                <div className="flex gap-2">
-                  <Button variant="outline" size="sm" onClick={clearFilters}>
-                    <X className="h-4 w-4 mr-1" />
-                    Clear All
-                  </Button>
-                </div>
-              </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                {/* Sets Filter */}
-                <Collapsible>
-                  <CollapsibleTrigger className="flex items-center justify-between w-full p-2 text-left font-medium">
-                    Sets ({selectedSets.length})
-                    <ChevronDown className="h-4 w-4" />
-                  </CollapsibleTrigger>
-                  <CollapsibleContent className="max-h-48 overflow-y-auto space-y-2">
-                    {sets.slice(0, 20).map((set) => (
-                      <div key={set.id} className="flex items-center space-x-2">
-                        <Checkbox
-                          id={`set-${set.id}`}
-                          checked={selectedSets.includes(set.id)}
-                          onCheckedChange={(checked) => 
-                            handleFilterChange('sets', set.id, checked as boolean)
-                          }
-                        />
-                        <label htmlFor={`set-${set.id}`} className="text-sm">
-                          {set.name}
-                        </label>
-                      </div>
-                    ))}
-                  </CollapsibleContent>
-                </Collapsible>
 
-                {/* Types Filter */}
-                <Collapsible>
-                  <CollapsibleTrigger className="flex items-center justify-between w-full p-2 text-left font-medium">
-                    Types ({selectedTypes.length})
-                    <ChevronDown className="h-4 w-4" />
-                  </CollapsibleTrigger>
-                  <CollapsibleContent className="space-y-2">
-                    {types.map((type) => (
-                      <div key={type} className="flex items-center space-x-2">
-                        <Checkbox
-                          id={`type-${type}`}
-                          checked={selectedTypes.includes(type)}
-                          onCheckedChange={(checked) => 
-                            handleFilterChange('types', type, checked as boolean)
-                          }
-                        />
-                        <label htmlFor={`type-${type}`} className="text-sm">
-                          {type}
-                        </label>
-                      </div>
-                    ))}
-                  </CollapsibleContent>
-                </Collapsible>
-
-                {/* Rarities Filter */}
-                <Collapsible>
-                  <CollapsibleTrigger className="flex items-center justify-between w-full p-2 text-left font-medium">
-                    Rarities ({selectedRarities.length})
-                    <ChevronDown className="h-4 w-4" />
-                  </CollapsibleTrigger>
-                  <CollapsibleContent className="max-h-48 overflow-y-auto space-y-2">
-                    {rarities.map((rarity) => (
-                      <div key={rarity} className="flex items-center space-x-2">
-                        <Checkbox
-                          id={`rarity-${rarity}`}
-                          checked={selectedRarities.includes(rarity)}
-                          onCheckedChange={(checked) => 
-                            handleFilterChange('rarities', rarity, checked as boolean)
-                          }
-                        />
-                        <label htmlFor={`rarity-${rarity}`} className="text-sm">
-                          {rarity}
-                        </label>
-                      </div>
-                    ))}
-                  </CollapsibleContent>
-                </Collapsible>
-
-                {/* Subtypes Filter */}
-                <Collapsible>
-                  <CollapsibleTrigger className="flex items-center justify-between w-full p-2 text-left font-medium">
-                    Subtypes ({selectedSubtypes.length})
-                    <ChevronDown className="h-4 w-4" />
-                  </CollapsibleTrigger>
-                  <CollapsibleContent className="space-y-2">
-                    {subtypes.map((subtype) => (
-                      <div key={subtype} className="flex items-center space-x-2">
-                        <Checkbox
-                          id={`subtype-${subtype}`}
-                          checked={selectedSubtypes.includes(subtype)}
-                          onCheckedChange={(checked) => 
-                            handleFilterChange('subtypes', subtype, checked as boolean)
-                          }
-                        />
-                        <label htmlFor={`subtype-${subtype}`} className="text-sm">
-                          {subtype}
-                        </label>
-                      </div>
-                    ))}
-                  </CollapsibleContent>
-                </Collapsible>
-              </div>
-            </CardContent>
-          </Card>
-        )}
 
         {/* Results count */}
         <div className="mb-4">
           <p className="text-gray-600">
-            {totalCount} cards found • Page {page} of {totalPages}
+            {totalCount} {t('cards.cardsFound')} • {t('cards.page')} {page} {t('cards.of')} {totalPages}
           </p>
         </div>
       </div>
 
       {/* Cards Display */}
       {displayMode === 'grid' ? (
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 md:gap-4">
           {cards.map((card) => (
             <Card key={card.id} className="group hover:shadow-lg transition-shadow">
               <CardHeader className="p-2">
@@ -478,7 +285,7 @@ const Cards = () => {
                           e.stopPropagation();
                           addToCollection(card);
                         }}
-                        title="Add to Collection"
+                        title={t('cards.addToCollection')}
                       >
                         <Plus className="h-4 w-4 text-primary" />
                       </Button>
@@ -491,7 +298,7 @@ const Cards = () => {
                           e.stopPropagation();
                           addToWishlist(card);
                         }}
-                        title="Add to Wishlist"
+                        title={t('cards.addToWishlist')}
                       >
                         <Heart className="h-4 w-4 text-red-500" />
                       </Button>
@@ -547,7 +354,7 @@ const Cards = () => {
                         className="hover:bg-primary/10"
                       >
                         <Plus className="h-4 w-4 mr-1 text-primary" />
-                        Collect
+                        {t('cards.collect')}
                       </Button>
                       <Button
                         variant="outline"
@@ -560,7 +367,7 @@ const Cards = () => {
                         className="hover:bg-red-50"
                       >
                         <Heart className="h-4 w-4 mr-1 text-red-500" />
-                        Wishlist
+                        {t('cards.wishlist')}
                       </Button>
                     </div>
                   )}
@@ -573,7 +380,7 @@ const Cards = () => {
 
       {cards.length === 0 && !loading && (
         <div className="text-center py-12">
-          <p className="text-gray-500 text-lg">No cards found.</p>
+          <p className="text-gray-500 text-lg">{t('cards.noCardsFound')}</p>
         </div>
       )}
 
@@ -581,23 +388,37 @@ const Cards = () => {
       {totalPages > 1 && (
         <div className="mt-8">
           <Pagination>
-            <PaginationContent>
+            <PaginationContent className="flex-wrap justify-center gap-1 sm:gap-0">
               <PaginationItem>
-                <PaginationPrevious 
+                <PaginationPrevious
                   onClick={() => handlePageChange(Math.max(1, page - 1))}
                   className={page === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                  aria-disabled={page === 1}
                 />
               </PaginationItem>
-              
-              {renderPaginationItems()}
-              
+
+              <div className="hidden sm:flex">
+                {renderPaginationItems()}
+              </div>
+
+              {/* Mobile pagination - show current page and total */}
+              <div className="flex sm:hidden items-center gap-2">
+                <span className="text-sm text-muted-foreground">
+                  {page} / {totalPages}
+                </span>
+              </div>
+
               <PaginationItem>
-                <PaginationNext 
+                <PaginationNext
                   onClick={() => handlePageChange(Math.min(totalPages, page + 1))}
                   className={page === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                  aria-disabled={page === totalPages}
                 />
               </PaginationItem>
             </PaginationContent>
+            <div className="text-center text-sm text-muted-foreground mt-2">
+              {t('pagination.page')} {page} {t('pagination.of')} {totalPages}
+            </div>
           </Pagination>
         </div>
       )}

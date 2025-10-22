@@ -9,6 +9,7 @@ import { backendApi, pokemonApi } from '@/services/api';
 import { Collection, PokemonCard } from '@/types/api';
 import { ArrowLeft, BarChart3, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 
 interface PaginatedResponse {
   count: number;
@@ -23,6 +24,7 @@ interface CollectionWithCard extends Collection {
 
 const UserCollection = () => {
   const { token } = useAuth();
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [collection, setCollection] = useState<CollectionWithCard[]>([]);
   const [loading, setLoading] = useState(true);
@@ -94,7 +96,10 @@ const UserCollection = () => {
   if (loading && collection.length === 0) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">{t('common.loading')}</p>
+        </div>
       </div>
     );
   }
@@ -109,29 +114,29 @@ const UserCollection = () => {
             className="flex items-center gap-2"
           >
             <ArrowLeft className="h-4 w-4" />
-            Back to Dashboard
+            {t('common.back')}
           </Button>
         </div>
         
         <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-2">
           <BarChart3 className="h-8 w-8 text-orange-500" />
-          My Collection
+          {t('collection.title')}
         </h1>
         <p className="text-gray-600 mt-2">
-          All cards in your collection ({totalCount} total)
+          {t('collection.title')} ({totalCount} {t('dashboard.totalCards').toLowerCase()})
         </p>
       </div>
 
       {/* Collection Cards */}
       <Card className="mb-8">
         <CardHeader>
-          <CardTitle>Collection Cards</CardTitle>
+          <CardTitle>{t('collection.title')}</CardTitle>
         </CardHeader>
         <CardContent>
           {collection.length === 0 ? (
             <div className="text-center py-12 text-gray-500">
-              <p>Your collection is empty.</p>
-              <p className="text-sm mt-2">Start by browsing cards and adding them to your collection!</p>
+              <p>{t('collection.noCards')}</p>
+              <p className="text-sm mt-2">{t('collection.addFirstCard')}</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -159,11 +164,11 @@ const UserCollection = () => {
                         {item.cardData?.name || `Card ID: ${item.card_id}`}
                       </h3>
                       <div className="flex flex-wrap gap-2 mb-3">
-                        <Badge variant="outline">Qty: {item.quantity}</Badge>
+                        <Badge variant="outline">{t('collection.quantity')}: {item.quantity}</Badge>
                         <Badge variant="outline">{item.condition}</Badge>
                         <Badge variant="outline">{item.variant}</Badge>
                         <Badge variant="outline">{item.language}</Badge>
-                        {item.is_graded && <Badge variant="default">Graded</Badge>}
+                        {item.is_graded && <Badge variant="default">{t('userMenu.gradedCards')}</Badge>}
                       </div>
                       {item.cardData && (
                         <div className="text-sm text-gray-600 mb-2">

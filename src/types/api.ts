@@ -1,20 +1,58 @@
-// API types for Pokemon TCG and our backend
-export interface PokemonCard {
+// API types for TCGdex and our backend
+// TCGdex Serie Type
+export interface PokemonSerie {
   id: string;
   name: string;
-  supertype: string;
-  subtypes: string[];
-  hp?: string;
+  logo?: string;
+}
+
+// TCGdex Card Type
+export interface PokemonCard {
+  id: string;
+  localId: string;
+  name: string;
+  hp?: number;
   types?: string[];
+  evolveFrom?: string;
+  description?: string;
+  level?: string;
+  stage?: string;
+  suffix?: string;
+  item?: {
+    name: string;
+    effect: string;
+  };
+  abilities?: Array<{
+    type: string;
+    name: string;
+    effect: string;
+  }>;
   attacks?: Attack[];
   weaknesses?: Weakness[];
   resistances?: Resistance[];
-  retreatCost?: string[];
-  convertedRetreatCost?: number;
+  retreat?: number;
   set: PokemonSet;
-  number: string;
-  artist?: string;
+  variants?: {
+    normal?: boolean;
+    reverse?: boolean;
+    holo?: boolean;
+    firstEdition?: boolean;
+  };
   rarity: string;
+  artist?: string;
+  dexId?: number[];
+  image?: string;
+  category?: string;
+  illustrator?: string;
+  regulationMark?: string;
+  legal?: {
+    standard?: boolean;
+    expanded?: boolean;
+  };
+  // Compatibility fields with old API
+  supertype?: string;
+  subtypes?: string[];
+  number: string;
   flavorText?: string;
   nationalPokedexNumbers?: number[];
   legalities: Legalities;
@@ -36,12 +74,24 @@ export interface PokemonCard {
 export interface PokemonSet {
   id: string;
   name: string;
+  logo?: string;
+  symbol?: string;
+  cardCount: {
+    total: number;
+    official: number;
+  };
+  releaseDate: string;
+  serie: {
+    id: string;
+    name: string;
+  };
+  tcgOnline?: string;
+  // Compatibility fields with old API
   series: string;
   printedTotal: number;
   total: number;
   legalities: Legalities;
   ptcgoCode?: string;
-  releaseDate: string;
   updatedAt: string;
   images: {
     symbol: string;
@@ -51,10 +101,11 @@ export interface PokemonSet {
 
 export interface Attack {
   name: string;
-  cost: string[];
-  convertedEnergyCost: number;
-  damage: string;
-  text: string;
+  cost?: string[];
+  effect?: string;
+  damage?: string | number;
+  convertedEnergyCost?: number;
+  text?: string;
 }
 
 export interface Weakness {

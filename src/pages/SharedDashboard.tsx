@@ -8,6 +8,7 @@ import { UsageCard } from '@/components/UsageCard';
 import { backendApi, pokemonApi } from '@/services/api';
 import { Collection, Wishlist, DashboardAnalytics, PokemonCard } from '@/types/api';
 import { Trophy, BarChart3, Heart, Clock, Eye } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 interface CollectionWithCard extends Collection {
   cardData?: PokemonCard;
@@ -19,6 +20,7 @@ interface WishlistWithCard extends Wishlist {
 
 const SharedDashboard = () => {
   const { userId } = useParams<{ userId: string }>();
+  const { t } = useTranslation();
   const [collection, setCollection] = useState<CollectionWithCard[]>([]);
   const [wishlist, setWishlist] = useState<WishlistWithCard[]>([]);
   const [analytics, setAnalytics] = useState<DashboardAnalytics | null>(null);
@@ -117,7 +119,7 @@ const SharedDashboard = () => {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Dashboard Not Found</h1>
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">{t('errors.notFound')}</h1>
           <p className="text-gray-600">{error}</p>
         </div>
       </div>
@@ -148,7 +150,7 @@ const SharedDashboard = () => {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Wishlist Items</CardTitle>
+            <CardTitle className="text-sm font-medium">{t('wishlist.title')}</CardTitle>
             <Badge variant="secondary">🎯</Badge>
           </CardHeader>
           <CardContent>
@@ -162,7 +164,7 @@ const SharedDashboard = () => {
         {analytics?.is_premium && (
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Collection Value</CardTitle>
+              <CardTitle className="text-sm font-medium">{t('dashboard.totalValue')}</CardTitle>
               <Badge variant="secondary">💰</Badge>
             </CardHeader>
             <CardContent>
@@ -178,8 +180,8 @@ const SharedDashboard = () => {
       {/* Collection and Wishlist Tabs */}
       <Tabs defaultValue="collection" className="w-full">
         <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="collection">Collection</TabsTrigger>
-          <TabsTrigger value="wishlist">Wishlist</TabsTrigger>
+          <TabsTrigger value="collection">{t('collection.title')}</TabsTrigger>
+          <TabsTrigger value="wishlist">{t('wishlist.title')}</TabsTrigger>
         </TabsList>
 
         <TabsContent value="collection" className="space-y-4">

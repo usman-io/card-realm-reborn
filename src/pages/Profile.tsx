@@ -7,11 +7,13 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useToast } from '@/hooks/use-toast';
+import { useTranslation } from 'react-i18next';
 import { Camera, Loader2 } from 'lucide-react';
 
 const Profile = () => {
-  const { user, token } = useAuth();
+  const { user, token, updateUser } = useAuth();
   const { toast } = useToast();
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
   const [profileData, setProfileData] = useState({
     first_name: user?.first_name || '',
@@ -22,7 +24,7 @@ const Profile = () => {
   });
   const [profileImage, setProfileImage] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(
-    user?.profile_picture ? `http://localhost:8000${user.profile_picture}` : null
+    user?.profile_picture ? `https://api.collectorshomebase.com${user.profile_picture}` : null
   );
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -60,8 +62,8 @@ const Profile = () => {
       if (profileData.newPassword) {
         if (profileData.newPassword !== profileData.confirmPassword) {
           toast({
-            title: "Error",
-            description: "New passwords don't match",
+            title: t('errors.somethingWentWrong'),
+            description: t('auth.confirmPassword'),
             variant: "destructive"
           });
           return;
@@ -74,6 +76,7 @@ const Profile = () => {
         formData.append('profile_picture', profileImage);
       }
 
+      console.log('Sending profile update request...');
       const response = await fetch('http://localhost:8000/api/auth/profile/', {
         method: 'PUT',
         headers: {
@@ -82,16 +85,19 @@ const Profile = () => {
         },
         body: formData
       });
+      console.log('Response received:', response.status, response.statusText);
 
       if (response.ok) {
         const userData = await response.json();
+        // Update the user context with the new data
+        updateUser(userData);
         // Update the preview URL if a new image was uploaded
         if (userData.profile_picture) {
-          setPreviewUrl(`http://localhost:8000${userData.profile_picture}`);
+          setPreviewUrl(`http://localhost:8000/${userData.profile_picture}`);
         }
         toast({
-          title: "Success",
-          description: "Profile updated successfully"
+          title: t('common.update'),
+          description: t('profile.profileUpdated')
         });
         // Clear password fields
         setProfileData(prev => ({
@@ -100,15 +106,16 @@ const Profile = () => {
           newPassword: '',
           confirmPassword: ''
         }));
-        // Refresh user data to get the latest from the server
-        await refreshUserData();
       } else {
-        throw new Error('Failed to update profile');
+        const errorData = await response.json().catch(() => ({}));
+        console.error('Profile update failed:', response.status, errorData);
+        throw new Error(`Failed to update profile: ${response.status} ${response.statusText}`);
       }
     } catch (error) {
+      console.error('Profile update error:', error);
       toast({
-        title: "Error",
-        description: "Failed to update profile",
+        title: t('errors.somethingWentWrong'),
+        description: error instanceof Error ? error.message : t('errors.somethingWentWrong'),
         variant: "destructive"
       });
     } finally {
@@ -126,7 +133,7 @@ const Profile = () => {
   // Refresh user data after update
   const refreshUserData = async () => {
     try {
-      const response = await fetch('http://localhost:8000/api/auth/profile/', {
+      const response = await fetch('https://api.collectorshomebase.com/api/auth/profile/', {
         headers: {
           'Authorization': `Token ${token}`
         }
@@ -134,10 +141,9 @@ const Profile = () => {
       if (response.ok) {
         const userData = await response.json();
         // Update the user context with the new data
-        // This assumes your AuthContext has a way to update the user
-        // You might need to adjust this based on your actual AuthContext implementation
+        updateUser(userData);
         if (userData.profile_picture) {
-          setPreviewUrl(`http://localhost:8000${userData.profile_picture}`);
+          setPreviewUrl(`https://api.collectorshomebase.com${userData.profile_picture}`);
         }
       }
     } catch (error) {
@@ -148,14 +154,14 @@ const Profile = () => {
   return (
     <div className="max-w-4xl mx-auto p-6 space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold">Profile Settings</h1>
+        <h1 className="text-3xl font-bold">{t('profile.title')}</h1>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Profile Picture Section */}
         <Card>
           <CardHeader>
-            <CardTitle>Profile Picture</CardTitle>
+            <CardTitle>{t('profile.uploadPhoto')}</CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col items-center space-y-4">
             <Avatar className="h-32 w-32">
@@ -177,7 +183,7 @@ const Profile = () => {
                 className="cursor-pointer flex items-center space-x-2 text-sm text-blue-600 hover:text-blue-800"
               >
                 <Camera className="h-4 w-4" />
-                <span>Change Photo</span>
+                <span>{t('profile.uploadPhoto')}</span>
               </Label>
             </div>
           </CardContent>
@@ -186,13 +192,13 @@ const Profile = () => {
         {/* Profile Information */}
         <Card className="md:col-span-2">
           <CardHeader>
-            <CardTitle>Personal Information</CardTitle>
+            <CardTitle>{t('profile.editProfile')}</CardTitle>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleProfileUpdate} className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="first_name">First Name</Label>
+                  <Label htmlFor="first_name">{t('profile.firstName')}</Label>
                   <Input
                     id="first_name"
                     name="first_name"
@@ -202,7 +208,7 @@ const Profile = () => {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="last_name">Last Name</Label>
+                  <Label htmlFor="last_name">{t('profile.lastName')}</Label>
                   <Input
                     id="last_name"
                     name="last_name"
@@ -214,7 +220,7 @@ const Profile = () => {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="email">{t('profile.email')}</Label>
                 <Input
                   id="email"
                   value={user?.email || ''}
@@ -224,28 +230,28 @@ const Profile = () => {
               </div>
 
               <div className="border-t pt-4 mt-6">
-                <h3 className="text-lg font-medium mb-4">Change Password</h3>
+                <h3 className="text-lg font-medium mb-4">{t('profile.changePassword')}</h3>
                 <div className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="newPassword">New Password</Label>
+                    <Label htmlFor="newPassword">{t('profile.newPassword')}</Label>
                     <Input
                       id="newPassword"
                       name="newPassword"
                       type="password"
                       value={profileData.newPassword}
                       onChange={handleInputChange}
-                      placeholder="Leave blank to keep current password"
+                      placeholder={t('profile.newPassword')}
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="confirmPassword">Confirm New Password</Label>
+                    <Label htmlFor="confirmPassword">{t('profile.confirmPassword')}</Label>
                     <Input
                       id="confirmPassword"
                       name="confirmPassword"
                       type="password"
                       value={profileData.confirmPassword}
                       onChange={handleInputChange}
-                      placeholder="Confirm your new password"
+                      placeholder={t('profile.confirmPassword')}
                     />
                   </div>
                 </div>
@@ -254,7 +260,7 @@ const Profile = () => {
               <div className="flex justify-end pt-4">
                 <Button type="submit" disabled={loading} className="bg-brand-dark-blue hover:bg-brand-dark-blue/90">
                   {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  Update Profile
+                  {t('profile.updateProfile')}
                 </Button>
               </div>
             </form>

@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSubscription } from '@/hooks/useSubscription';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Dialog } from '@headlessui/react';
@@ -21,6 +22,7 @@ interface Subscription {
 
 const Premium = () => {
   const { isAuthenticated } = useAuth();
+  const { t } = useTranslation();
   const { subscription, loading, isSubscribed, createCheckoutSession, cancelSubscription, refreshSubscription } = useSubscription();
   const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
   const [isCanceling, setIsCanceling] = useState(false);
@@ -42,64 +44,64 @@ const Premium = () => {
       }
       return;
     } else if (canceled === 'true') {
-      toast.info('Payment was canceled. You can try again anytime.');
+      toast.info(t('premium.paymentCanceled') || 'Payment was canceled. You can try again anytime.');
       // Clean up URL parameters
       // setSearchParams({});
     }
-  }, [searchParams, navigate]);
+  }, [searchParams, navigate, t]);
 
   const features = [
     {
       icon: <Zap className="w-5 h-5" />,
-      title: 'Advanced Analytics',
-      description: 'Detailed collection statistics and market insights'
+      title: t('premium.advancedAnalytics'),
+      description: t('premium.advancedAnalyticsDesc')
     },
     {
       icon: <Shield className="w-5 h-5" />,
-      title: 'Priority Support',
-      description: '24/7 premium customer support'
+      title: t('premium.prioritySupport'),
+      description: t('premium.prioritySupportDesc')
     },
     {
       icon: <Star className="w-5 h-5" />,
-      title: 'Exclusive Features',
-      description: 'Early access to new features and tools'
+      title: t('premium.exclusiveFeatures'),
+      description: t('premium.exclusiveFeaturesDesc')
     },
     {
       icon: <Crown className="w-5 h-5" />,
-      title: 'Portfolio Tracking',
-      description: 'Real-time market value tracking'
+      title: t('premium.portfolioTracking'),
+      description: t('premium.portfolioTrackingDesc')
     }
   ];
 
   const plans = [
     {
-      name: 'Free',
+      name: t('premium.freePlan'),
       price: '$0',
-      period: 'forever',
-      description: 'Perfect for casual collectors',
+      period: t('premium.forever'),
+      description: t('premium.perfectForCasual'),
       features: [
-        'Basic collection tracking',
-        'Up to 100 cards',
-        'Standard search',
-        'Community access'
+        t('premium.basicTracking'),
+        t('premium.upTo100Cards'),
+        t('premium.standardSearch'),
+        t('premium.communityAccess')
       ],
       current: !isSubscribed
     },
     {
-      name: 'Premium',
+      name: t('premium.premiumPlan'),
       price: '$3.99',
-      period: 'month',
+      period: t('premium.month'),
       yearlyPrice: '$40.00',
       monthlyEquivalent: '$3.33',
-      savings: 'save $7.88',
-      description: 'For serious collectors',
+      savings: t('premium.save') + ' $7.88',
+      description: t('premium.forSeriousCollectors'),
       features: [
-        'Unlimited cards',
-        'Advanced analytics',
-        'Price tracking',
-        'Export data',
-        'Priority support',
-        'Ad-free experience'
+        t('premium.unlimitedCards'),
+        t('premium.advancedAnalyticsFeature'),
+        t('premium.priceTracking'),
+        t('premium.exportData'),
+        t('premium.prioritySupportFeature'),
+        t('premium.adFree')
       ],
       popular: true,
       current: isSubscribed
@@ -108,7 +110,7 @@ const Premium = () => {
 
   const handleSubscribe = async (plan: 'monthly' | 'yearly') => {
     if (!isAuthenticated) {
-      toast.error('Please log in to subscribe');
+      toast.error(t('auth.loginError'));
       return;
     }
 
@@ -118,10 +120,10 @@ const Premium = () => {
         // Redirect to Stripe checkout
         window.location.href = data.url;
       } else {
-        toast.error('Failed to get checkout URL');
+        toast.error(t('errors.somethingWentWrong'));
       }
     } catch (error) {
-      toast.error('Failed to start checkout process');
+      toast.error(t('errors.somethingWentWrong'));
     }
   };
 
@@ -129,10 +131,10 @@ const Premium = () => {
     setIsCanceling(true);
     try {
       await cancelSubscription();
-      toast.success('Subscription canceled successfully. You will retain access until the end of your billing period.');
+      toast.success(t('premium.subscriptionCanceledSuccess') || 'Subscription canceled successfully. You will retain access until the end of your billing period.');
       await refreshSubscription();
     } catch (error) {
-      toast.error('Failed to cancel subscription');
+      toast.error(t('errors.somethingWentWrong'));
     } finally {
       setIsCanceling(false);
       setIsCancelModalOpen(false);
@@ -150,7 +152,7 @@ const Premium = () => {
         <Dialog.Panel className="mx-auto max-w-sm rounded-lg bg-white p-6 shadow-xl">
           <div className="flex justify-between items-start">
             <Dialog.Title className="text-lg font-medium text-gray-900">
-              Cancel Subscription
+              {t('premium.cancelModalTitle')}
             </Dialog.Title>
             <button
               onClick={() => setIsCancelModalOpen(false)}
@@ -163,7 +165,7 @@ const Premium = () => {
 
           <div className="mt-4">
             <p className="text-sm text-gray-600">
-              Are you sure you want to cancel your subscription? You will lose access to premium features at the end of your billing period.
+              {t('premium.cancelModalDescription')}
             </p>
           </div>
 
@@ -174,7 +176,7 @@ const Premium = () => {
               disabled={isCanceling}
               className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
             >
-              Keep Subscription
+              {t('premium.keepSubscription')}
             </button>
             <button
               type="button"
@@ -185,10 +187,10 @@ const Premium = () => {
               {isCanceling ? (
                 <span className="flex items-center">
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Canceling...
+                  {t('premium.canceling')}
                 </span>
               ) : (
-                'Cancel Subscription'
+                t('premium.cancelSubscription')
               )}
             </button>
           </div>
@@ -204,7 +206,7 @@ const Premium = () => {
       disabled={!subscription?.is_active}
       className="w-full sm:w-auto"
     >
-      {subscription?.is_active === false ? 'Subscription Canceled' : 'Cancel Subscription'}
+      {subscription?.is_active === false ? t('premium.subscriptionCanceled') : t('premium.cancelSubscription')}
     </Button>
   );
 
@@ -225,19 +227,18 @@ const Premium = () => {
       {/* Hero Section */}
       <div className="text-center mb-16">
         <h1 className="text-4xl font-bold text-gray-900 mb-4">
-          Unlock the Full Power of TCG Collecting
+          {t('premium.heroTitle')}
         </h1>
         <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
-          Take your Pokémon card collection to the next level with premium features 
-          designed for serious collectors and investors.
+          {t('premium.heroDescription')}
         </p>
         {isSubscribed ? (
           <Badge variant="default" className="text-sm px-4 py-2 bg-green-600">
-            ✅ Premium Active - {subscription?.plan} plan
+            ✅ {t('premium.premiumActive')} - {subscription?.plan} {t('premium.plan')}
           </Badge>
         ) : (
           <Badge variant="secondary" className="text-sm px-4 py-2">
-            🎉 Start your premium journey today
+            🎉 {t('premium.startPremiumJourney')}
           </Badge>
         )}
       </div>
@@ -267,20 +268,20 @@ const Premium = () => {
               <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Crown className="w-8 h-8 text-green-600" />
               </div>
-              <CardTitle className="text-2xl text-green-600">Premium Active</CardTitle>
+              <CardTitle className="text-2xl text-green-600">{t('premium.premiumActive')}</CardTitle>
               <CardDescription>
-                You're currently on the {subscription?.plan} plan
+                {t('premium.youreOnPlan')} {subscription?.plan} {t('premium.plan')}
               </CardDescription>
             </CardHeader>
             <CardContent className="text-center space-y-4">
               <div className="space-y-2">
                 <p className="text-sm text-gray-600">
-                  Enjoying all premium features including unlimited cards, advanced analytics, and priority support.
+                  {t('premium.enjoyingFeatures')}
                 </p>
               </div>
               {renderCancelButton()}
               <p className="text-xs text-gray-500">
-                You will retain access to premium features until the end of your billing period.
+                {t('premium.retainAccess')}
               </p>
             </CardContent>
           </Card>
@@ -291,7 +292,7 @@ const Premium = () => {
       {!isSubscribed && (
         <div className="mb-16">
           <h2 className="text-3xl font-bold text-center text-gray-900 mb-12">
-            Choose Your Plan
+            {t('premium.chooseYourPlan')}
           </h2>
           <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
             {plans.map((plan, index) => (
@@ -299,14 +300,14 @@ const Premium = () => {
                 {plan.popular && (
                   <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
                     <Badge className="bg-blue-600 text-white px-4 py-1">
-                      Most Popular
+                      {t('premium.mostPopular')}
                     </Badge>
                   </div>
                 )}
                 {plan.current && (
                   <div className="absolute -top-3 right-4">
                     <Badge className="bg-green-600 text-white px-3 py-1">
-                      Current Plan
+                      {t('premium.currentPlan')}
                     </Badge>
                   </div>
                 )}
@@ -316,13 +317,13 @@ const Premium = () => {
                     <span className="text-4xl font-bold">{plan.price}</span>
                     <span className="text-gray-600">/{plan.period}</span>
                   </div>
-                  {plan.name === 'Premium' && (
+                  {plan.popular && (
                     <div className="mt-2 space-y-1">
                       <div className="text-sm text-gray-600">
-                        Billed yearly: <span className="font-semibold">{plan.monthlyEquivalent}/month</span>
+                        {t('premium.billedYearly')}: <span className="font-semibold">{plan.monthlyEquivalent}/{t('premium.month')}</span>
                       </div>
                       <div className="text-sm text-green-600 font-medium">
-                        {plan.yearlyPrice} in total – {plan.savings}
+                        {plan.yearlyPrice} {t('premium.inTotal')} – {plan.savings}
                       </div>
                     </div>
                   )}
@@ -337,13 +338,13 @@ const Premium = () => {
                       </li>
                     ))}
                   </ul>
-                  {plan.name === 'Free' ? (
+                  {!plan.popular ? (
                     <Button 
                       className="w-full" 
                       variant={plan.current ? 'outline' : 'default'}
                       disabled={plan.current}
                     >
-                      {plan.current ? 'Current Plan' : 'Get Started'}
+                      {plan.current ? t('premium.currentPlan') : t('premium.getStarted')}
                     </Button>
                   ) : (
                     <div className="space-y-2">
@@ -352,7 +353,7 @@ const Premium = () => {
                         onClick={() => handleSubscribe('monthly')}
                         disabled={!isAuthenticated}
                       >
-                        {!isAuthenticated ? 'Login Required' : 'Subscribe Monthly'}
+                        {!isAuthenticated ? t('premium.loginRequired') : t('premium.subscribeMonthly')}
                       </Button>
                       <Button 
                         className="w-full" 
@@ -360,7 +361,7 @@ const Premium = () => {
                         onClick={() => handleSubscribe('yearly')}
                         disabled={!isAuthenticated}
                       >
-                        {!isAuthenticated ? 'Login Required' : 'Subscribe Yearly'}
+                        {!isAuthenticated ? t('premium.loginRequired') : t('premium.subscribeYearly')}
                       </Button>
                     </div>
                   )}
@@ -374,35 +375,31 @@ const Premium = () => {
       {/* FAQ Section */}
       <div className="max-w-3xl mx-auto">
         <h2 className="text-3xl font-bold text-center text-gray-900 mb-12">
-          Frequently Asked Questions
+          {t('premium.faqTitle')}
         </h2>
         <div className="space-y-8">
           <div>
-            <h3 className="text-lg font-semibold mb-2">Can I cancel anytime?</h3>
+            <h3 className="text-lg font-semibold mb-2">{t('premium.faqCancelTitle')}</h3>
             <p className="text-gray-600">
-              Yes, you can cancel your subscription at any time. You'll continue to have access 
-              to premium features until the end of your billing period.
+              {t('premium.faqCancelDesc')}
             </p>
           </div>
           <div>
-            <h3 className="text-lg font-semibold mb-2">What happens to my data if I cancel?</h3>
+            <h3 className="text-lg font-semibold mb-2">{t('premium.faqDataTitle')}</h3>
             <p className="text-gray-600">
-              Your collection data is always yours. If you cancel, you'll still have access to 
-              your basic collection, but premium features will be disabled.
+              {t('premium.faqDataDesc')}
             </p>
           </div>
           <div>
-            <h3 className="text-lg font-semibold mb-2">Do you offer discounts for annual plans?</h3>
+            <h3 className="text-lg font-semibold mb-2">{t('premium.faqDiscountTitle')}</h3>
             <p className="text-gray-600">
-              Yes! Annual plans save you $7.88 compared to monthly billing. 
-              That's 2 months free when you pay yearly.
+              {t('premium.faqDiscountDesc')}
             </p>
           </div>
           <div>
-            <h3 className="text-lg font-semibold mb-2">How accurate is the price tracking?</h3>
+            <h3 className="text-lg font-semibold mb-2">{t('premium.faqPriceTitle')}</h3>
             <p className="text-gray-600">
-              Our price data is sourced from multiple marketplaces and updated daily. 
-              We provide market averages to help you make informed decisions.
+              {t('premium.faqPriceDesc')}
             </p>
           </div>
         </div>
@@ -412,10 +409,10 @@ const Premium = () => {
       {!isSubscribed && (
         <div className="text-center mt-16 py-12 bg-blue-50 rounded-lg">
           <h2 className="text-2xl font-bold text-gray-900 mb-4">
-            Ready to upgrade your collecting experience?
+            {t('premium.readyToUpgrade')}
           </h2>
           <p className="text-gray-600 mb-6">
-            Join thousands of collectors who've upgraded to premium
+            {t('premium.joinThousands')}
           </p>
           <div className="space-x-4">
             <Button 
@@ -423,7 +420,7 @@ const Premium = () => {
               onClick={() => handleSubscribe('yearly')}
               disabled={!isAuthenticated}
             >
-              {!isAuthenticated ? 'Login to Subscribe' : 'Start Yearly Plan'}
+              {!isAuthenticated ? t('premium.loginToSubscribe') : t('premium.startYearlyPlan')}
             </Button>
             <Button 
               variant="outline" 
@@ -431,7 +428,7 @@ const Premium = () => {
               onClick={() => handleSubscribe('monthly')}
               disabled={!isAuthenticated}
             >
-              {!isAuthenticated ? 'Login Required' : 'Start Monthly Plan'}  
+              {!isAuthenticated ? t('premium.loginRequired') : t('premium.startMonthlyPlan')}  
             </Button>
           </div>
         </div>

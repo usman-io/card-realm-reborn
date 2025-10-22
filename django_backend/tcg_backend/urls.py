@@ -9,8 +9,12 @@ urlpatterns = [
     path('api/auth/', include('accounts.urls')),
     path('api/', include('collection.urls')),
     path('api/', include('subscriptions.urls')),
+
 ]
 
 # Serve media files in development
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+
+# Serve media files in production
+urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

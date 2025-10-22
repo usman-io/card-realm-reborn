@@ -15,6 +15,7 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
+import { useTranslation } from 'react-i18next';
 
 interface AddCardNoteDialogProps {
   open: boolean;
@@ -25,6 +26,7 @@ interface AddCardNoteDialogProps {
 const AddCardNoteDialog = ({ open, onOpenChange, card }: AddCardNoteDialogProps) => {
   const { token } = useAuth();
   const { toast } = useToast();
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
   const [note, setNote] = useState('');
 
@@ -39,16 +41,16 @@ const AddCardNoteDialog = ({ open, onOpenChange, card }: AddCardNoteDialogProps)
       });
 
       toast({
-        title: 'Success',
-        description: 'Note added successfully!',
+        title: t('common.update'),
+        description: t('collection.addNote'),
       });
 
       onOpenChange(false);
       setNote('');
     } catch (error) {
       toast({
-        title: 'Error',
-        description: 'Failed to add note',
+        title: t('errors.somethingWentWrong'),
+        description: t('errors.somethingWentWrong'),
         variant: 'destructive',
       });
     } finally {
@@ -60,18 +62,18 @@ const AddCardNoteDialog = ({ open, onOpenChange, card }: AddCardNoteDialogProps)
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>Add Note for {card.name}</DialogTitle>
+          <DialogTitle>{t('collection.addNote')} {card.name}</DialogTitle>
           <DialogDescription>
-            Add a personal note for this card that only you can see.
+            {t('collection.notes')}
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="note">Your Note</Label>
+            <Label htmlFor="note">{t('collection.notes')}</Label>
             <Textarea
               id="note"
-              placeholder="Add your thoughts, observations, or reminders about this card..."
+              placeholder={t('collection.notes')}
               value={note}
               onChange={(e) => setNote(e.target.value)}
               rows={4}
@@ -81,10 +83,10 @@ const AddCardNoteDialog = ({ open, onOpenChange, card }: AddCardNoteDialogProps)
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancel
+            {t('common.cancel')}
           </Button>
           <Button onClick={handleSubmit} disabled={loading || !note.trim()}>
-            {loading ? 'Adding...' : 'Add Note'}
+            {loading ? t('common.loading') : t('collection.addNote')}
           </Button>
         </DialogFooter>
       </DialogContent>

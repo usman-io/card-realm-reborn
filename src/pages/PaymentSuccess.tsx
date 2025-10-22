@@ -5,10 +5,12 @@ import { Button } from '@/components/ui/button';
 import { CheckCircle, Crown, ArrowRight } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useSubscription } from '@/hooks/useSubscription';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
 const PaymentSuccess = () => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [searchParams] = useSearchParams();
   const { refreshSubscription } = useSubscription();
   const sessionId = searchParams.get('session_id');
@@ -16,8 +18,8 @@ const PaymentSuccess = () => {
   useEffect(() => {
     // Refresh subscription status when component mounts
     refreshSubscription();
-    toast.success('Payment successful! Your premium subscription is now active.');
-  }, [refreshSubscription]);
+    toast.success(t('payment.success'));
+  }, [refreshSubscription, t]);
 
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
@@ -27,15 +29,15 @@ const PaymentSuccess = () => {
             <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
               <CheckCircle className="w-8 h-8 text-green-600" />
             </div>
-            <CardTitle className="text-2xl text-green-600">Payment Successful!</CardTitle>
+            <CardTitle className="text-2xl text-green-600">{t('payment.success')}</CardTitle>
             <CardDescription>
-              Your premium subscription has been activated
+              {t('payment.premiumActivated')}
             </CardDescription>
           </CardHeader>
           <CardContent className="text-center space-y-4">
             <div className="flex items-center justify-center gap-2 text-sm text-gray-600">
               <Crown className="w-4 h-4 text-yellow-500" />
-              <span>Welcome to Premium</span>
+              <span>{t('payment.welcomeToPremium')}</span>
             </div>
             
             {sessionId && (
@@ -49,7 +51,7 @@ const PaymentSuccess = () => {
                 onClick={() => navigate('/premium')} 
                 className="w-full"
               >
-                View Premium Features
+                {t('payment.viewPremiumFeatures')}
                 <ArrowRight className="w-4 h-4 ml-2" />
               </Button>
               
@@ -58,7 +60,7 @@ const PaymentSuccess = () => {
                 variant="outline"
                 className="w-full"
               >
-                Go to Dashboard
+                {t('payment.goToDashboard')}
               </Button>
             </div>
           </CardContent>

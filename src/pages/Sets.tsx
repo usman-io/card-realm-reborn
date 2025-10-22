@@ -10,8 +10,10 @@ import { Pagination, PaginationContent, PaginationEllipsis, PaginationItem, Pagi
 import { pokemonApi } from '@/services/api';
 import { PokemonSet } from '@/types/api';
 import { Search, Calendar, Package, List } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 const Sets = () => {
+  const { t, i18n } = useTranslation();
   const [sets, setSets] = useState<PokemonSet[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -31,15 +33,15 @@ const Sets = () => {
   useEffect(() => {
     const fetchSets = async () => {
       try {
-        const response = await pokemonApi.getSets({ 
+        const response = await pokemonApi.getSets({
           orderBy: '-releaseDate',
           page: page.toString(),
           pageSize: '30'
-        });
+        }, i18n.language);
         setSets(response.data);
         setTotalCount(response.totalCount || response.data.length);
         setTotalPages(Math.ceil((response.totalCount || response.data.length) / 30));
-        
+
         // Extract unique series with proper Set typing
         const seriesSet = new Set<string>(response.data.map((set: PokemonSet) => set.series));
         const uniqueSeries = Array.from(seriesSet);
@@ -52,7 +54,7 @@ const Sets = () => {
     };
 
     fetchSets();
-  }, [page]);
+  }, [page, i18n.language]);
 
   useEffect(() => {
     let filtered = sets;
@@ -102,84 +104,77 @@ const Sets = () => {
 
   const renderPaginationItems = () => {
     const items = [];
-    const maxVisiblePages = 5;
-    
-    if (totalPages <= maxVisiblePages) {
-      for (let i = 1; i <= totalPages; i++) {
-        items.push(
-          <PaginationItem key={i}>
-            <PaginationLink
-              onClick={() => handlePageChange(i)}
-              isActive={page === i}
-              className="cursor-pointer"
-            >
-              {i}
-            </PaginationLink>
-          </PaginationItem>
-        );
-      }
-    } else {
-      // Show first page
+    // Reduce visible pages on mobile
+    const maxVisiblePages = window.innerWidth < 640 ? 3 : 5;
+    let startPage = Math.max(1, Math.min(page - Math.floor(maxVisiblePages / 2), totalPages - maxVisiblePages + 1));
+    let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+
+    if (endPage - startPage + 1 < maxVisiblePages) {
+      startPage = Math.max(1, endPage - maxVisiblePages + 1);
+    }
+
+    // First page
+    if (startPage > 1) {
       items.push(
         <PaginationItem key={1}>
           <PaginationLink
             onClick={() => handlePageChange(1)}
-            isActive={page === 1}
+            isActive={1 === page}
             className="cursor-pointer"
+            aria-label={`${t('pagination.firstPage')}, ${t('pagination.page')} 1`}
           >
             1
           </PaginationLink>
         </PaginationItem>
       );
 
-      if (page > 3) {
+      if (startPage > 2) {
         items.push(
-          <PaginationItem key="ellipsis1">
-            <PaginationEllipsis />
+          <PaginationItem key="ellipsis-start">
+            <PaginationEllipsis aria-label={t('pagination.ellipsis')} />
+          </PaginationItem>
+        );
+      }
+    }
+
+    // Middle pages
+    for (let i = startPage; i <= endPage; i++) {
+      items.push(
+        <PaginationItem key={i}>
+          <PaginationLink
+            onClick={() => handlePageChange(i)}
+            isActive={i === page}
+            className="cursor-pointer"
+            aria-label={`${t('pagination.page')} ${i} ${t('pagination.of')} ${totalPages}`}
+          >
+            {i}
+          </PaginationLink>
+        </PaginationItem>
+      );
+    }
+
+    // Last page
+    if (endPage < totalPages) {
+      if (endPage < totalPages - 1) {
+        items.push(
+          <PaginationItem key="ellipsis-end">
+            <PaginationEllipsis aria-label={t('pagination.ellipsis')} />
           </PaginationItem>
         );
       }
 
-      // Show current page and surrounding pages
-      const start = Math.max(2, page - 1);
-      const end = Math.min(totalPages - 1, page + 1);
-      
-      for (let i = start; i <= end; i++) {
-        items.push(
-          <PaginationItem key={i}>
-            <PaginationLink
-              onClick={() => handlePageChange(i)}
-              isActive={page === i}
-              className="cursor-pointer"
-            >
-              {i}
-            </PaginationLink>
-          </PaginationItem>
-        );
-      }
-
-      if (page < totalPages - 2) {
-        items.push(
-          <PaginationItem key="ellipsis2">
-            <PaginationEllipsis />
-          </PaginationItem>
-        );
-      }
-
-      // Show last page
-      if (totalPages > 1) {
-        items.push(
-          <PaginationItem key={totalPages}>
-            <PaginationLink
-              onClick={() => handlePageChange(totalPages)}
-              isActive={page === totalPages}
-              className="cursor-pointer"
-            >
-              {totalPages}
-            </PaginationLink>
-          </PaginationItem>
-        );
-      }
+      items.push(
+        <PaginationItem key={totalPages}>
+          <PaginationLink
+            onClick={() => handlePageChange(totalPages)}
+            isActive={totalPages === page}
+            className="cursor-pointer"
+            aria-label={`${t('pagination.lastPage')}, ${t('pagination.page')} ${totalPages}`}
+          >
+            {totalPages}
+          </PaginationLink>
+        </PaginationItem>
+      );
     }
 
     return items;
@@ -188,7 +183,10 @@ const Sets = () => {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">{t('common.loading')}</p>
+        </div>
       </div>
     );
   }
@@ -196,14 +194,14 @@ const Sets = () => {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-4">Pokémon TCG Sets</h1>
+        <h1 className="text-3xl font-bold text-gray-900 mb-4">{t('sets.title')}</h1>
         
         {/* Search Bar */}
         <div className="relative max-w-md mb-6">
           <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
           <Input
             type="text"
-            placeholder="Search sets..."
+            placeholder={t('sets.searchPlaceholder')}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-10"
@@ -211,22 +209,22 @@ const Sets = () => {
         </div>
 
         {/* Status Filter */}
-        <div className="flex items-center gap-4 mb-6">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 mb-6">
           <ToggleGroup type="single" value={collectionStatus} onValueChange={setCollectionStatus}>
-            <ToggleGroupItem value="all">All</ToggleGroupItem>
-            <ToggleGroupItem value="in-progress">In progress</ToggleGroupItem>
-            <ToggleGroupItem value="completed">Completed</ToggleGroupItem>
+            <ToggleGroupItem value="all">{t('sets.all')}</ToggleGroupItem>
+            <ToggleGroupItem value="in-progress">{t('sets.inProgress')}</ToggleGroupItem>
+            <ToggleGroupItem value="completed">{t('sets.completed')}</ToggleGroupItem>
           </ToggleGroup>
-          
-          <div className="flex items-center gap-2 ml-auto">
-            <span className="text-sm text-gray-600">Show sets as</span>
+
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 w-full sm:w-auto sm:ml-auto">
+            <span className="text-sm text-gray-600 whitespace-nowrap">{t('sets.showSetsAs')}</span>
             <Select value={showLogos ? 'logos' : 'text'} onValueChange={(value) => setShowLogos(value === 'logos')}>
-              <SelectTrigger className="w-48">
+              <SelectTrigger className="w-full sm:w-48">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="logos">Any card variant</SelectItem>
-                <SelectItem value="text">Text only</SelectItem>
+                <SelectItem value="logos">{t('sets.anyCardVariant')}</SelectItem>
+                <SelectItem value="text">{t('sets.textOnly')}</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -235,47 +233,47 @@ const Sets = () => {
         {/* Results count */}
         <div className="mb-4">
           <p className="text-gray-600">
-            {totalCount} sets found • Page {page} of {totalPages}
+            {totalCount} {t('sets.title').toLowerCase()} • {t('pagination.page')} {page} {t('pagination.of')} {totalPages}
           </p>
         </div>
 
         {/* Sort and Display Options */}
-        <div className="flex flex-wrap items-center gap-4 mb-6">
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-gray-600">Sort by</span>
+        <div className="flex flex-col sm:flex-row flex-wrap items-start sm:items-center gap-3 sm:gap-4 mb-6">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 w-full sm:w-auto">
+            <span className="text-sm text-gray-600 whitespace-nowrap">{t('sets.sortBy')}</span>
             <Select value={sortBy} onValueChange={setSortBy}>
-              <SelectTrigger className="w-32">
+              <SelectTrigger className="w-full sm:w-32">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="series">Series</SelectItem>
-                <SelectItem value="date">Date</SelectItem>
+                <SelectItem value="series">{t('sets.series')}</SelectItem>
+                <SelectItem value="date">{t('sets.date')}</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-gray-600">From</span>
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 w-full sm:w-auto">
+            <span className="text-sm text-gray-600 whitespace-nowrap">{t('sets.from')}</span>
             <Select value={sortOrder} onValueChange={setSortOrder}>
-              <SelectTrigger className="w-32">
+              <SelectTrigger className="w-full sm:w-32">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="new-to-old">New to old</SelectItem>
-                <SelectItem value="old-to-new">Old to new</SelectItem>
+                <SelectItem value="new-to-old">{t('sets.newToOld')}</SelectItem>
+                <SelectItem value="old-to-new">{t('sets.oldToNew')}</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-gray-600">Show</span>
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 w-full sm:w-auto">
+            <span className="text-sm text-gray-600 whitespace-nowrap">{t('sets.show')}</span>
             <Select value={showLogos ? 'logos' : 'text'} onValueChange={(value) => setShowLogos(value === 'logos')}>
-              <SelectTrigger className="w-24">
+              <SelectTrigger className="w-full sm:w-24">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="logos">Logos</SelectItem>
-                <SelectItem value="text">Text</SelectItem>
+                <SelectItem value="logos">{t('sets.logos')}</SelectItem>
+                <SelectItem value="text">{t('sets.text')}</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -285,15 +283,16 @@ const Sets = () => {
         <div className="mb-6">
           <div className="flex items-center gap-2 mb-4">
             <List className="h-4 w-4 text-gray-500" />
-            <span className="text-sm text-gray-600">Filter by series:</span>
+            <span className="text-sm text-gray-600">{t('sets.filterBySeries')}</span>
           </div>
-          <div className="flex flex-wrap gap-2">
-            <Button 
+          <div className="flex flex-wrap gap-2 overflow-x-auto pb-2">
+            <Button
               variant={selectedSeries === 'all' ? 'default' : 'outline'}
               size="sm"
               onClick={() => setSelectedSeries('all')}
+              className="whitespace-nowrap flex-shrink-0"
             >
-              All Series
+              {t('sets.allSeries')}
             </Button>
             {seriesList.slice(0, 8).map((series) => (
               <Button
@@ -301,6 +300,7 @@ const Sets = () => {
                 variant={selectedSeries === series ? 'default' : 'outline'}
                 size="sm"
                 onClick={() => setSelectedSeries(series)}
+                className="whitespace-nowrap flex-shrink-0"
               >
                 {series}
               </Button>
@@ -310,17 +310,13 @@ const Sets = () => {
       </div>
 
       {/* Sets Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
         {filteredSets.map((set) => (
           <Link key={set.id} to={`/sets/${set.id}`}>
             <Card className="h-full hover:shadow-lg transition-shadow cursor-pointer">
               <CardHeader className="pb-4">
                 <div className="flex items-center justify-between mb-2">
                   <Badge variant="secondary">{set.series}</Badge>
-                  <div className="flex items-center text-sm text-gray-500">
-                    <Calendar className="w-4 h-4 mr-1" />
-                    {new Date(set.releaseDate).getFullYear()}
-                  </div>
                 </div>
                 {showLogos && set.images?.logo && (
                   <div className="flex justify-center mb-4">
@@ -338,13 +334,13 @@ const Sets = () => {
                   <div className="flex items-center justify-between text-sm">
                     <span className="flex items-center text-gray-600">
                       <Package className="w-4 h-4 mr-1" />
-                      Total Cards
+                      {t('sets.totalCards')}
                     </span>
                     <span className="font-medium">{set.total}</span>
                   </div>
                   {set.ptcgoCode && (
                     <div className="flex items-center justify-between text-sm">
-                      <span className="text-gray-600">Code</span>
+                      <span className="text-gray-600">{t('sets.code')}</span>
                       <Badge variant="outline" className="text-xs">
                         {set.ptcgoCode}
                       </Badge>
@@ -352,7 +348,7 @@ const Sets = () => {
                   )}
                 </div>
                 <Button variant="outline" className="w-full mt-4">
-                  View Cards
+                  {t('sets.viewSet')}
                 </Button>
               </CardContent>
             </Card>
@@ -364,30 +360,44 @@ const Sets = () => {
       {totalPages > 1 && (
         <div className="mt-8">
           <Pagination>
-            <PaginationContent>
+            <PaginationContent className="flex-wrap justify-center gap-1 sm:gap-0">
               <PaginationItem>
-                <PaginationPrevious 
+                <PaginationPrevious
                   onClick={() => handlePageChange(Math.max(1, page - 1))}
                   className={page === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                  aria-disabled={page === 1}
                 />
               </PaginationItem>
-              
-              {renderPaginationItems()}
-              
+
+              <div className="hidden sm:flex">
+                {renderPaginationItems()}
+              </div>
+
+              {/* Mobile pagination - show current page and total */}
+              <div className="flex sm:hidden items-center gap-2">
+                <span className="text-sm text-muted-foreground">
+                  {page} / {totalPages}
+                </span>
+              </div>
+
               <PaginationItem>
-                <PaginationNext 
+                <PaginationNext
                   onClick={() => handlePageChange(Math.min(totalPages, page + 1))}
                   className={page === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                  aria-disabled={page === totalPages}
                 />
               </PaginationItem>
             </PaginationContent>
+            <div className="text-center text-sm text-muted-foreground mt-2">
+              {t('pagination.page', { page })} {t('pagination.of')} {totalPages}
+            </div>
           </Pagination>
         </div>
       )}
 
       {filteredSets.length === 0 && !loading && (
         <div className="text-center py-12">
-          <p className="text-gray-500 text-lg">No sets found matching your criteria.</p>
+          <p className="text-gray-500 text-lg">{t('sets.noSets')}</p>
         </div>
       )}
     </div>

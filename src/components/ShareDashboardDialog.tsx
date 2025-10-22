@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Share2, Copy, Check } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useTranslation } from 'react-i18next';
 
 interface ShareDashboardDialogProps {
   children: React.ReactNode;
@@ -21,6 +22,7 @@ interface ShareDashboardDialogProps {
 export const ShareDashboardDialog: React.FC<ShareDashboardDialogProps> = ({ children }) => {
   const { user } = useAuth();
   const { toast } = useToast();
+  const { t } = useTranslation();
   const [copied, setCopied] = useState(false);
 
   const shareUrl = `${window.location.origin}/dashboard/shared/${user?.id}`;
@@ -30,14 +32,14 @@ export const ShareDashboardDialog: React.FC<ShareDashboardDialogProps> = ({ chil
       await navigator.clipboard.writeText(shareUrl);
       setCopied(true);
       toast({
-        title: "Link copied!",
-        description: "Dashboard link has been copied to your clipboard.",
+        title: t('share.linkCopied'),
+        description: t('share.linkCopiedDesc'),
       });
       setTimeout(() => setCopied(false), 2000);
     } catch (error) {
       toast({
-        title: "Failed to copy",
-        description: "Please copy the link manually.",
+        title: t('share.failedToCopy'),
+        description: t('share.copyManually'),
         variant: "destructive",
       });
     }

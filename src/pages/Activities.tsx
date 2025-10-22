@@ -9,6 +9,7 @@ import { Pagination, PaginationContent, PaginationItem, PaginationLink, Paginati
 import { backendApi } from '@/services/api';
 import { ArrowLeft, Search, Clock } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 
 interface Activity {
   id: string;
@@ -31,6 +32,7 @@ interface PaginatedResponse {
 
 const Activities = () => {
   const { token } = useAuth();
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [activities, setActivities] = useState<Activity[]>([]);
   const [loading, setLoading] = useState(true);
@@ -109,7 +111,7 @@ const Activities = () => {
             className="flex items-center gap-2"
           >
             <ArrowLeft className="h-4 w-4" />
-            Back to Dashboard
+            {t('common.back')}
           </Button>
         </div>
         
@@ -130,7 +132,7 @@ const Activities = () => {
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
               <Input
                 type="text"
-                placeholder="Search activities by card ID or message..."
+                placeholder={t('common.search')}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-10"
@@ -147,9 +149,9 @@ const Activities = () => {
       <div className="mb-6">
         <p className="text-gray-600">
           {searchQuery ? (
-            <>Showing {activities.length} of {totalCount} activities matching "{searchQuery}"</>
+            <>{t('activities.showing')} {activities.length} {t('activities.of')} {totalCount} {t('activities.activitiesMatching')} "{searchQuery}"</>
           ) : (
-            <>Showing {activities.length} of {totalCount} total activities</>
+            <>{t('activities.showing')} {activities.length} {t('activities.of')} {totalCount} {t('activities.totalActivities')}</>
           )}
         </p>
       </div>
@@ -157,20 +159,20 @@ const Activities = () => {
       {/* Activities List */}
       <Card className="mb-8">
         <CardHeader>
-          <CardTitle>Activities</CardTitle>
+          <CardTitle>{t('activities.title')}</CardTitle>
         </CardHeader>
         <CardContent>
           {activities.length === 0 ? (
             <div className="text-center py-12 text-gray-500">
               {searchQuery ? (
                 <>
-                  <p>No activities found matching your search.</p>
+                  <p>{t('activities.noActivities')}</p>
                   <p className="text-sm mt-2">Try adjusting your search terms.</p>
                 </>
               ) : (
                 <>
                   <p>No activities yet.</p>
-                  <p className="text-sm mt-2">Start adding cards to see activity here!</p>
+                  <p className="text-sm mt-2">{t('activities.startAdding')}</p>
                 </>
               )}
             </div>

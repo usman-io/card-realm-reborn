@@ -9,6 +9,7 @@ import { backendApi, pokemonApi } from '@/services/api';
 import { Wishlist, PokemonCard } from '@/types/api';
 import { ArrowLeft, Heart, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 
 interface PaginatedResponse {
   count: number;
@@ -23,6 +24,7 @@ interface WishlistWithCard extends Wishlist {
 
 const UserWishlist = () => {
   const { token } = useAuth();
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [wishlist, setWishlist] = useState<WishlistWithCard[]>([]);
   const [loading, setLoading] = useState(true);
@@ -109,7 +111,10 @@ const UserWishlist = () => {
   if (loading && wishlist.length === 0) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">{t('common.loading')}</p>
+        </div>
       </div>
     );
   }
@@ -124,13 +129,13 @@ const UserWishlist = () => {
             className="flex items-center gap-2"
           >
             <ArrowLeft className="h-4 w-4" />
-            Back to Dashboard
+            {t('common.back')}
           </Button>
         </div>
         
         <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-2">
           <Heart className="h-8 w-8 text-red-500" />
-          My Wishlist
+          {t('wishlist.title')}
         </h1>
         <p className="text-gray-600 mt-2">
           Cards you want to add to your collection ({totalCount} total)
@@ -140,13 +145,13 @@ const UserWishlist = () => {
       {/* Wishlist Cards */}
       <Card className="mb-8">
         <CardHeader>
-          <CardTitle>Wishlist Cards</CardTitle>
+          <CardTitle>{t('wishlist.title')}</CardTitle>
         </CardHeader>
         <CardContent>
           {wishlist.length === 0 ? (
             <div className="text-center py-12 text-gray-500">
-              <p>Your wishlist is empty.</p>
-              <p className="text-sm mt-2">Add cards to your wishlist while browsing!</p>
+              <p>{t('wishlist.noItems')}</p>
+              <p className="text-sm mt-2">{t('wishlist.addItems')}</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

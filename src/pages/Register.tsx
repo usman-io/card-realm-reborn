@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
 const Register = () => {
@@ -18,6 +19,7 @@ const Register = () => {
   });
   const [loading, setLoading] = useState(false);
   const { register } = useAuth();
+  const { t } = useTranslation();
   const navigate = useNavigate();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -31,7 +33,7 @@ const Register = () => {
     e.preventDefault();
     
     if (formData.password !== formData.confirmPassword) {
-      toast.error('Passwords do not match');
+      toast.error(t('auth.confirmPassword'));
       return;
     }
 
@@ -44,10 +46,10 @@ const Register = () => {
         email: formData.email,
         password: formData.password,
       });
-      toast.success('Account created successfully!');
+      toast.success(t('auth.registerSuccess'));
       navigate('/dashboard');
     } catch (error) {
-      toast.error('Failed to create account. Please try again.');
+      toast.error(t('auth.registerError'));
     } finally {
       setLoading(false);
     }
@@ -57,16 +59,16 @@ const Register = () => {
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
-          <CardTitle className="text-2xl font-bold">Create your account</CardTitle>
+          <CardTitle className="text-2xl font-bold">{t('auth.register')}</CardTitle>
           <CardDescription>
-            Join the community of Pokémon TCG collectors
+            {t('auth.register')}
           </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="first_name">First Name</Label>
+                <Label htmlFor="first_name">{t('profile.username')}</Label>
                 <Input
                   id="first_name"
                   name="first_name"
@@ -74,11 +76,11 @@ const Register = () => {
                   value={formData.first_name}
                   onChange={handleChange}
                   required
-                  placeholder="John"
+                  placeholder={t('profile.username')}
                 />
               </div>
               <div>
-                <Label htmlFor="last_name">Last Name</Label>
+                <Label htmlFor="last_name">{t('profile.username')}</Label>
                 <Input
                   id="last_name"
                   name="last_name"
@@ -86,12 +88,12 @@ const Register = () => {
                   value={formData.last_name}
                   onChange={handleChange}
                   required
-                  placeholder="Doe"
+                  placeholder={t('profile.username')}
                 />
               </div>
             </div>
             <div>
-              <Label htmlFor="email">Email address</Label>
+              <Label htmlFor="email">{t('auth.email')}</Label>
               <Input
                 id="email"
                 name="email"
@@ -99,11 +101,11 @@ const Register = () => {
                 value={formData.email}
                 onChange={handleChange}
                 required
-                placeholder="john@example.com"
+                placeholder={t('auth.email')}
               />
             </div>
             <div>
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password">{t('auth.password')}</Label>
               <Input
                 id="password"
                 name="password"
@@ -111,11 +113,11 @@ const Register = () => {
                 value={formData.password}
                 onChange={handleChange}
                 required
-                placeholder="Create a strong password"
+                placeholder={t('auth.password')}
               />
             </div>
             <div>
-              <Label htmlFor="confirmPassword">Confirm Password</Label>
+              <Label htmlFor="confirmPassword">{t('auth.confirmPassword')}</Label>
               <Input
                 id="confirmPassword"
                 name="confirmPassword"
@@ -123,18 +125,18 @@ const Register = () => {
                 value={formData.confirmPassword}
                 onChange={handleChange}
                 required
-                placeholder="Confirm your password"
+                placeholder={t('auth.confirmPassword')}
               />
             </div>
             <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? 'Creating account...' : 'Create account'}
+              {loading ? t('common.loading') : t('auth.register')}
             </Button>
           </form>
           <div className="mt-6 text-center">
             <p className="text-sm text-gray-600">
-              Already have an account?{' '}
+              {t('auth.alreadyHaveAccount')}{' '}
               <Link to="/login" className="text-blue-600 hover:text-blue-500 font-medium">
-                Sign in here
+                {t('auth.login')}
               </Link>
             </p>
           </div>

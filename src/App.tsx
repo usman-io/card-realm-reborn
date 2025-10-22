@@ -38,8 +38,8 @@ const queryClient = new QueryClient({
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <Router>
+      <Router>
+        <AuthProvider>
           <div className="min-h-screen bg-gray-50">
             <Header />
             <main>
@@ -51,7 +51,7 @@ function App() {
                 <Route path="/cards/:id" element={<CardDetail />} />
                 <Route path="/sets" element={<Sets />} />
                 <Route path="/sets/:id" element={<SetDetail />} />
-                
+
                 {/* Protected Routes */}
                 <Route path="/dashboard">
                   <Route index element={
@@ -95,17 +95,17 @@ function App() {
                     </ProtectedRoute>
                   } />
                 </Route>
-                
+
                 {/* Public Shared Dashboard Route */}
                 <Route path="/dashboard/shared/:userId" element={<SharedDashboard />} />
-                
+
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </main>
             <Toaster />
           </div>
-        </Router>
-      </AuthProvider>
+        </AuthProvider>
+      </Router>
     </QueryClientProvider>
   );
 }

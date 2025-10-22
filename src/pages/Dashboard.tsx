@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
@@ -31,10 +32,11 @@ const Dashboard = () => {
   const [analyticsLoading, setAnalyticsLoading] = useState(true);
   const [collectionLoading, setCollectionLoading] = useState(true);
   const [wishlistLoading, setWishlistLoading] = useState(true);
+  const { t, i18n } = useTranslation();
 
   const fetchCardData = async (cardId: string): Promise<PokemonCard | null> => {
     try {
-      const response = await pokemonApi.getCard(cardId);
+      const response = await pokemonApi.getCard(cardId, i18n.language);
       return response.data;
     } catch (error) {
       console.error(`Error fetching card data for ${cardId}:`, error);
@@ -150,7 +152,10 @@ const Dashboard = () => {
   if (analyticsLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">{t('common.loading')}</p>
+        </div>
       </div>
     );
   }
@@ -160,24 +165,24 @@ const Dashboard = () => {
       <div className="mb-8">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">
-              Welcome back, {user?.first_name}!
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
+              {t('dashboard.welcome')}, {user?.first_name}!
             </h1>
             <p className="text-gray-600 mt-2">
-              Here's an overview of your Pokémon card collection
+              {t('dashboard.title')}
             </p>
           </div>
           <ShareDashboardDialog>
             <Button variant="outline" className="flex items-center gap-2">
               <Share2 className="h-4 w-4" />
-              Share Dashboard
+              {t('common.share')}
             </Button>
           </ShareDashboardDialog>
         </div>
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6 mb-8">
         <UsageCard
           isPremium={analytics?.is_premium || false}
           totalCards={analytics?.total_cards || 0}
@@ -188,13 +193,13 @@ const Dashboard = () => {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Wishlist Items</CardTitle>
+            <CardTitle className="text-sm font-medium">{t('wishlist.title')}</CardTitle>
             <Badge variant="secondary">🎯</Badge>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{analytics?.wishlist_count || 0}</div>
             <p className="text-xs text-muted-foreground">
-              Cards you want to collect
+              {t('wishlist.addItems')}
             </p>
           </CardContent>
         </Card>
@@ -239,7 +244,7 @@ const Dashboard = () => {
       </div>
 
       {/* Premium Analytics Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8 mb-8">
         <PremiumFeatureGate
           isPremium={analytics?.is_premium || false}
           featureName="Sets Completed"
@@ -356,7 +361,7 @@ const Dashboard = () => {
       </div>
 
       {/* Card Statistics - Premium Feature */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8 mb-8">
         <PremiumFeatureGate
           isPremium={analytics?.is_premium || false}
           featureName="Card Type Analytics"
@@ -480,16 +485,16 @@ const Dashboard = () => {
       {/* Collection and Wishlist Tabs */}
       <Tabs defaultValue="collection" className="w-full">
         <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="collection">My Collection</TabsTrigger>
-          <TabsTrigger value="wishlist">Wishlist</TabsTrigger>
+          <TabsTrigger value="collection">{t('collection.title')}</TabsTrigger>
+          <TabsTrigger value="wishlist">{t('wishlist.title')}</TabsTrigger>
         </TabsList>
 
         <TabsContent value="collection" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>Recent Additions</CardTitle>
+              <CardTitle>{t('dashboard.recentActivity')}</CardTitle>
               <CardDescription>
-                Cards you've recently added to your collection
+                {t('collection.title')}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -515,12 +520,12 @@ const Dashboard = () => {
                 </div>
               ) : collection.length === 0 ? (
                 <div className="text-center py-8 text-gray-500">
-                  <p>Your collection is empty.</p>
-                  <p className="text-sm mt-2">Start by browsing cards and adding them to your collection!</p>
+                  <p>{t('collection.noCards')}</p>
+                  <p className="text-sm mt-2">{t('collection.addFirstCard')}</p>
                 </div>
               ) : (
                 <div className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                     {collection.map((item) => (
                       <div key={item.id} className="border rounded-lg p-4 hover:shadow-lg transition-shadow">
                         <div className="flex flex-col gap-3">
@@ -538,7 +543,7 @@ const Dashboard = () => {
                               </div>
                             )}
                           </div>
-                          
+
                           {/* Card Info */}
                           <div className="text-center">
                             <p className="font-medium text-sm mb-1">
@@ -561,7 +566,7 @@ const Dashboard = () => {
                       variant="outline"
                       onClick={() => handleQuickAccess('collection')}
                     >
-                      View All Collection ({analytics?.total_cards || 0} cards)
+                      {t('dashboard.viewAll')} ({analytics?.total_cards || 0} {t('cards.title').toLowerCase()})
                     </Button>
                   </div>
                 </div>
@@ -573,9 +578,9 @@ const Dashboard = () => {
         <TabsContent value="wishlist" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>Your Wishlist</CardTitle>
+              <CardTitle>{t('wishlist.title')}</CardTitle>
               <CardDescription>
-                Cards you want to add to your collection
+                {t('wishlist.addItems')}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -600,12 +605,12 @@ const Dashboard = () => {
                 </div>
               ) : wishlist.length === 0 ? (
                 <div className="text-center py-8 text-gray-500">
-                  <p>Your wishlist is empty.</p>
-                  <p className="text-sm mt-2">Add cards to your wishlist while browsing!</p>
+                  <p>{t('wishlist.noItems')}</p>
+                  <p className="text-sm mt-2">{t('wishlist.addItems')}</p>
                 </div>
               ) : (
                 <div className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                     {wishlist.map((item) => (
                       <div key={item.id} className="border rounded-lg p-4 hover:shadow-lg transition-shadow">
                         <div className="flex flex-col gap-3">
@@ -623,7 +628,7 @@ const Dashboard = () => {
                               </div>
                             )}
                           </div>
-                          
+
                           {/* Card Info */}
                           <div className="text-center">
                             <p className="font-medium text-sm mb-1">
@@ -647,7 +652,7 @@ const Dashboard = () => {
                       variant="outline"
                       onClick={() => handleQuickAccess('wishlist')}
                     >
-                      View All Wishlist ({analytics?.wishlist_count || 0} cards)
+                      {t('dashboard.viewAll')} ({analytics?.wishlist_count || 0} {t('cards.title').toLowerCase()})
                     </Button>
                   </div>
                 </div>

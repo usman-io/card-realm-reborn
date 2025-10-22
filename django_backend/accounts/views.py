@@ -7,9 +7,7 @@ from django.contrib.auth import authenticate, login, logout
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from .serializers import UserSerializer, LoginSerializer, UserProfileSerializer, RegisterSerializer
-
-# Import the custom User model
-User = settings.AUTH_USER_MODEL
+from .models import User
 
 class RegisterView(APIView):
     permission_classes = [permissions.AllowAny]
@@ -73,6 +71,7 @@ class ProfileView(APIView):
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data, status=status.HTTP_200_OK)
+        print(f"Serializer errors: {serializer.errors}")  # Debug logging
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class LogoutView(APIView):

@@ -22,6 +22,7 @@ import {
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
+import { useTranslation } from 'react-i18next';
 
 interface AddToWishlistDialogProps {
   open: boolean;
@@ -32,6 +33,7 @@ interface AddToWishlistDialogProps {
 const AddToWishlistDialog = ({ open, onOpenChange, card }: AddToWishlistDialogProps) => {
   const { token } = useAuth();
   const { toast } = useToast();
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
   const [priority, setPriority] = useState('medium');
   const [notes, setNotes] = useState('');
@@ -48,8 +50,8 @@ const AddToWishlistDialog = ({ open, onOpenChange, card }: AddToWishlistDialogPr
       });
 
       toast({
-        title: 'Success',
-        description: 'Card added to wishlist successfully!',
+        title: t('common.update'),
+        description: t('wishlist.addToWishlist'),
       });
 
       onOpenChange(false);
@@ -57,8 +59,8 @@ const AddToWishlistDialog = ({ open, onOpenChange, card }: AddToWishlistDialogPr
       setNotes('');
     } catch (error) {
       toast({
-        title: 'Error',
-        description: 'Failed to add card to wishlist',
+        title: t('errors.somethingWentWrong'),
+        description: t('errors.somethingWentWrong'),
         variant: 'destructive',
       });
     } finally {
@@ -70,35 +72,35 @@ const AddToWishlistDialog = ({ open, onOpenChange, card }: AddToWishlistDialogPr
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[400px]">
         <DialogHeader>
-          <DialogTitle>Add {card.name} to Wishlist</DialogTitle>
+          <DialogTitle>{t('common.add')} {card.name} {t('wishlist.addToWishlist')}</DialogTitle>
           <DialogDescription>
-            Add this card to your wishlist with priority and notes.
+            {t('wishlist.addToWishlist')}
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">
           {/* Priority */}
           <div className="space-y-2">
-            <Label htmlFor="priority">Priority *</Label>
+            <Label htmlFor="priority">{t('wishlist.priority')} *</Label>
             <Select value={priority} onValueChange={setPriority}>
               <SelectTrigger>
-                <SelectValue placeholder="Select priority" />
+                <SelectValue placeholder={t('wishlist.priority')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="low">Low</SelectItem>
-                <SelectItem value="medium">Medium</SelectItem>
-                <SelectItem value="high">High</SelectItem>
-                <SelectItem value="urgent">Urgent</SelectItem>
+                <SelectItem value="low">{t('wishlist.low')}</SelectItem>
+                <SelectItem value="medium">{t('wishlist.medium')}</SelectItem>
+                <SelectItem value="high">{t('wishlist.high')}</SelectItem>
+                <SelectItem value="urgent">{t('wishlist.high')}</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
           {/* Note */}
           <div className="space-y-2">
-            <Label htmlFor="notes">Note (optional)</Label>
+            <Label htmlFor="notes">{t('collection.notes')}</Label>
             <Textarea
               id="notes"
-              placeholder="Add any notes about this card..."
+              placeholder={t('collection.notes')}
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               rows={3}
@@ -108,10 +110,10 @@ const AddToWishlistDialog = ({ open, onOpenChange, card }: AddToWishlistDialogPr
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancel
+            {t('common.cancel')}
           </Button>
           <Button onClick={handleSubmit} disabled={loading}>
-            {loading ? 'Adding...' : 'Add to wishlist'}
+            {loading ? t('common.loading') : t('wishlist.addToWishlist')}
           </Button>
         </DialogFooter>
       </DialogContent>
