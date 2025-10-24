@@ -271,9 +271,6 @@ const Cards = () => {
                 </Link>
                 <p className="text-xs text-muted-foreground truncate">{card.set.name}</p>
                 <div className="flex items-center justify-between mt-2">
-                  <Badge variant="secondary" className="text-xs">
-                    {card.rarity}
-                  </Badge>
                   {isAuthenticated && (
                     <div className="flex gap-1">
                       <Button
@@ -328,17 +325,7 @@ const Cards = () => {
                     </Link>
                     <p className="text-sm text-muted-foreground">{card.set.name}</p>
                     <div className="flex items-center gap-2 mt-2">
-                      <Badge variant="secondary">{card.rarity}</Badge>
                       <Badge variant="outline">#{card.number}</Badge>
-                      {card.types && (
-                        <div className="flex gap-1">
-                          {card.types.map((type) => (
-                            <Badge key={type} variant="outline" className="text-xs">
-                              {type}
-                            </Badge>
-                          ))}
-                        </div>
-                      )}
                     </div>
                   </div>
                   {isAuthenticated && (

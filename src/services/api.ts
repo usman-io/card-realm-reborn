@@ -7,17 +7,15 @@ const getLanguageCode = (lang: string): string => {
   switch (lang) {
     case 'zh':
       return 'zh-tw';
-    case 'ja':
-      return 'ja';
     default:
-      return 'en';
+      return lang;
   }
 };
 
 // TCGdex API calls (replacing Pokemon TCG API)
 export const pokemonApi = {
   // Helper to transform TCGdex card to match our existing structure
-  transformCard(card: any, setData?: any): any {
+  transformCard(card: any, setData?: any, langCode?: string): any {
     return {
       id: card.id, // Use the original TCGdx ID (e.g., "base3-1")
       localId: card.localId,
@@ -60,8 +58,8 @@ export const pokemonApi = {
       legalities: card.legal || {},
       nationalPokedexNumbers: card.dexId || [],
       images: {
-        small: card.image ? `${card.image}/high.png` : `https://assets.tcgdex.net/en/${setData?.serie?.id || 'unknown'}/${setData?.id || 'unknown'}/${card.localId || card.id}/high.png`,
-        large: card.image ? `${card.image}/high.png` : `https://assets.tcgdex.net/en/${setData?.serie?.id || 'unknown'}/${setData?.id || 'unknown'}/${card.localId || card.id}/high.png`,
+        small: card.image ? `${card.image}/high.png` : `https://assets.tcgdex.net/${langCode || 'en'}/${setData?.serie?.id || 'unknown'}/${setData?.id || 'unknown'}/${card.localId || card.id}/high.png`,
+        large: card.image ? `${card.image}/high.png` : `https://assets.tcgdex.net/${langCode || 'en'}/${setData?.serie?.id || 'unknown'}/${setData?.id || 'unknown'}/${card.localId || card.id}/high.png`,
       },
       illustrator: card.illustrator,
       regulationMark: card.regulationMark,
@@ -118,8 +116,12 @@ export const pokemonApi = {
         const setData = await setResponse.json();
 
         if (setData.cards) {
-          const transformedCards = setData.cards.map((card: any) =>
-            this.transformCard(card, this.transformSet(setData))
+          let cardsArray = setData.cards;
+          if (langCode === 'ja') {
+            cardsArray = cardsArray.filter((card: any) => card.image);
+          }
+          const transformedCards = cardsArray.map((card: any) =>
+            this.transformCard(card, this.transformSet(setData), langCode)
           );
 
           // Sort by number if requested
@@ -149,7 +151,10 @@ export const pokemonApi = {
       if (params.q && params.q.includes('name:')) {
         const searchTerm = params.q.replace('name:', '').replace('*', '').trim();
         const response = await fetch(`${apiBase}/cards?name=${encodeURIComponent(searchTerm)}`);
-        const cardsArray = await response.json();
+        let cardsArray = await response.json();
+        if (langCode === 'ja') {
+          cardsArray = cardsArray.filter((card: any) => card.image);
+        }
 
         // Apply sorting if requested
         let sortedCards = cardsArray;
@@ -178,7 +183,7 @@ export const pokemonApi = {
 
         // Transform cards
         const transformedCards = paginatedCards.map((card: any) => {
-          return this.transformCard(card);
+          return this.transformCard(card, undefined, langCode);
         });
 
         return {
@@ -191,7 +196,10 @@ export const pokemonApi = {
 
       // Default: get all cards from the /cards endpoint
       const response = await fetch(`${apiBase}/cards`);
-      const cardsArray = await response.json();
+      let cardsArray = await response.json();
+      if (langCode === 'ja') {
+        cardsArray = cardsArray.filter((card: any) => card.image);
+      }
 
       // Apply sorting if requested
       let sortedCards = cardsArray;
@@ -222,7 +230,7 @@ export const pokemonApi = {
       const transformedCards = paginatedCards.map((card: any) => {
         // For now, we'll transform without set data since we don't have it
         // In a real implementation, you might want to batch fetch set data
-        return this.transformCard(card);
+        return this.transformCard(card, undefined, langCode);
       });
 
       return {
@@ -237,17 +245,20 @@ export const pokemonApi = {
     }
   },
 
-  async getCard(id: string) {
+  async getCard(id: string, language?: string) {
     try {
+      const langCode = language ? getLanguageCode(language) : 'en';
+      const apiBase = `${TCGDEX_API_BASE}/${langCode}`;
+
       // TCGdx card ID format: base3-1 (direct fetch)
-      const response = await fetch(`${TCGDEX_API_BASE}/cards/${id}`);
+      const response = await fetch(`${apiBase}/cards/${id}`);
       const card = await response.json();
-      
+
       // Fetch set data for proper transformation
-      const setResponse = await fetch(`${TCGDEX_API_BASE}/sets/${card.set.id}`);
+      const setResponse = await fetch(`${apiBase}/sets/${card.set.id}`);
       const setData = await setResponse.json();
-      
-      return { data: this.transformCard(card, this.transformSet(setData)) };
+
+      return { data: this.transformCard(card, this.transformSet(setData), langCode) };
     } catch (error) {
       console.error('Error fetching card:', error);
       throw error;

@@ -315,9 +315,6 @@ const Sets = () => {
           <Link key={set.id} to={`/sets/${set.id}`}>
             <Card className="h-full hover:shadow-lg transition-shadow cursor-pointer">
               <CardHeader className="pb-4">
-                <div className="flex items-center justify-between mb-2">
-                  <Badge variant="secondary">{set.series}</Badge>
-                </div>
                 {showLogos && set.images?.logo && (
                   <div className="flex justify-center mb-4">
                     <img

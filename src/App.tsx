@@ -52,6 +52,13 @@ function App() {
                 <Route path="/sets" element={<Sets />} />
                 <Route path="/sets/:id" element={<SetDetail />} />
 
+                {/* Premium Route - accessible without dashboard prefix */}
+                <Route path="/premium" element={
+                  <ProtectedRoute>
+                    <Premium />
+                  </ProtectedRoute>
+                } />
+
                 {/* Protected Routes */}
                 <Route path="/dashboard">
                   <Route index element={

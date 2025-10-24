@@ -14,7 +14,7 @@ import AddToWishlistDialog from '@/components/AddToWishlistDialog';
 
 const CardDetail = () => {
   const { id } = useParams<{ id: string }>();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [card, setCard] = useState<PokemonCard | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedCard, setSelectedCard] = useState<PokemonCard | null>(null);
@@ -25,9 +25,9 @@ const CardDetail = () => {
   useEffect(() => {
     const fetchCard = async () => {
       if (!id) return;
-      
+
       try {
-        const response = await pokemonApi.getCard(id);
+        const response = await pokemonApi.getCard(id, i18n.language);
         setCard(response.data);
       } catch (error) {
         console.error('Error fetching card:', error);
@@ -37,7 +37,7 @@ const CardDetail = () => {
     };
 
     fetchCard();
-  }, [id]);
+  }, [id, i18n.language]);
 
   const addToCollection = (card: PokemonCard) => {
     setSelectedCard(card);
