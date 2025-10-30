@@ -259,7 +259,8 @@
     "view": "Anzeigen",
     "download": "Herunterladen",
     "upload": "Hochladen",
-    "selectLanguage": "Sprache auswählen"
+    "selectLanguage": "Sprache auswählen",
+    "clearFilters": "Filter Löschen"
   },
   "errors": {
     "somethingWentWrong": "Etwas ist schief gelaufen",
@@ -275,6 +276,14 @@
     "linkCopiedDesc": "Dashboard-Link wurde in die Zwischenablage kopiert.",
     "failedToCopy": "Kopieren fehlgeschlagen",
     "copyManually": "Bitte kopieren Sie den Link manuell."
+  },
+  "languages": {
+    "en": "Englisch",
+    "es": "Spanisch",
+    "de": "Deutsch",
+    "fr": "Französisch",
+    "zh": "Chinesisch",
+    "ja": "Japanisch"
   },
   "notFound": {
     "title": "Seite Nicht Gefunden",

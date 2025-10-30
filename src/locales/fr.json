@@ -259,7 +259,8 @@
     "view": "Voir",
     "download": "Télécharger",
     "upload": "Téléverser",
-    "selectLanguage": "Sélectionner la Langue"
+    "selectLanguage": "Sélectionner la Langue",
+    "clearFilters": "Effacer les Filtres"
   },
   "errors": {
     "somethingWentWrong": "Quelque chose s'est mal passé",
@@ -275,6 +276,14 @@
     "linkCopiedDesc": "Le lien du tableau de bord a été copié dans votre presse-papiers.",
     "failedToCopy": "Échec de la copie",
     "copyManually": "Veuillez copier le lien manuellement."
+  },
+  "languages": {
+    "en": "Anglais",
+    "es": "Espagnol",
+    "de": "Allemand",
+    "fr": "Français",
+    "zh": "Chinois",
+    "ja": "Japonais"
   },
   "notFound": {
     "title": "Page Non Trouvée",

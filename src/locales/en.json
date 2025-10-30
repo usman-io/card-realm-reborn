@@ -267,6 +267,14 @@
     "serverError": "Server error",
     "networkError": "Network error"
   },
+  "languages": {
+    "en": "English",
+    "es": "Spanish",
+    "de": "German",
+    "fr": "French",
+    "zh": "Chinese",
+    "ja": "Japanese"
+  },
   "pagination": {
       "previous": "Previous",
       "next": "Next",
@@ -304,7 +312,8 @@
       "view": "View",
       "download": "Download",
       "upload": "Upload",
-      "selectLanguage": "Select Language"
+      "selectLanguage": "Select Language",
+      "clearFilters": "Clear Filters"
    },
    "errors": {
       "somethingWentWrong": "Something went wrong",

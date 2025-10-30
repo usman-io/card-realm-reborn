@@ -30,7 +30,18 @@ const Cards = () => {
   const [selectedCard, setSelectedCard] = useState<PokemonCard | null>(null);
   const [showCollectionDialog, setShowCollectionDialog] = useState(false);
   const [showWishlistDialog, setShowWishlistDialog] = useState(false);
+  const [selectedLanguage, setSelectedLanguage] = useState('en');
   const { isAuthenticated } = useAuth();
+
+  // Language options for the filter
+  const languageOptions = [
+    { value: 'en', label: t('languages.en', { defaultValue: 'English' }) },
+    { value: 'ja', label: t('languages.ja', { defaultValue: 'Japanese' }) },
+    { value: 'zh', label: t('languages.zh', { defaultValue: 'Chinese' }) },
+    { value: 'fr', label: t('languages.fr', { defaultValue: 'French' }) },
+    { value: 'es', label: t('languages.es', { defaultValue: 'Spanish' }) },
+    { value: 'de', label: t('languages.de', { defaultValue: 'German' }) },
+  ];
 
   useEffect(() => {
     const q = searchParams.get('q') || '';
@@ -50,7 +61,7 @@ const Cards = () => {
         params.q = `name:${query}*`;
       }
 
-      const response = await pokemonApi.getCards(params, i18n.language);
+      const response = await pokemonApi.getCards(params, selectedLanguage);
       setCards(response.data || []);
       setTotalCount(response.totalCount || 0);
       setTotalPages(Math.ceil((response.totalCount || 0) / pageSize));
@@ -64,7 +75,7 @@ const Cards = () => {
 
   useEffect(() => {
     fetchCards(searchQuery, page);
-  }, [searchQuery, sortBy, page, i18n.language]);
+  }, [searchQuery, sortBy, page, selectedLanguage]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -88,6 +99,15 @@ const Cards = () => {
   const handlePageChange = (newPage: number) => {
     setPage(newPage);
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const clearFilters = () => {
+    setSearchQuery('');
+    setSelectedLanguage('en');
+    setSortBy('name');
+    setDisplayMode('grid');
+    setPage(1);
+    setSearchParams({});
   };
 
   const renderPaginationItems = () => {
@@ -196,10 +216,33 @@ const Cards = () => {
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-10"
               />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-3 top-3 h-4 w-4 text-gray-400 hover:text-gray-600"
+                  aria-label="Clear search"
+                >
+                  ×
+                </button>
+              )}
             </div>
           </form>
           
           <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+            <Select value={selectedLanguage} onValueChange={setSelectedLanguage}>
+              <SelectTrigger className="w-full sm:w-32">
+                <SelectValue placeholder={t('common.language')} />
+              </SelectTrigger>
+              <SelectContent>
+                {languageOptions.map((lang) => (
+                  <SelectItem key={lang.value} value={lang.value}>
+                    {lang.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
             <Select value={sortBy} onValueChange={setSortBy}>
               <SelectTrigger className="w-full sm:w-48">
                 <SelectValue placeholder={t('cards.sortBy')} />
@@ -240,10 +283,18 @@ const Cards = () => {
 
 
         {/* Results count */}
-        <div className="mb-4">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4">
           <p className="text-gray-600">
             {totalCount} {t('cards.cardsFound')} • {t('cards.page')} {page} {t('cards.of')} {totalPages}
           </p>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={clearFilters}
+            className="self-start sm:self-auto"
+          >
+            {t('common.clearFilters')}
+          </Button>
         </div>
       </div>
 
@@ -251,7 +302,7 @@ const Cards = () => {
       {displayMode === 'grid' ? (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 md:gap-4">
           {cards.map((card) => (
-            <Card key={card.id} className="group hover:shadow-lg transition-shadow">
+            <Card key={`${card.id}-${selectedLanguage}`} className="group hover:shadow-lg transition-shadow">
               <CardHeader className="p-2">
                 <Link to={`/cards/${card.id}`}>
                   <div className="aspect-[3/4] overflow-hidden rounded-lg">
@@ -309,7 +360,7 @@ const Cards = () => {
       ) : (
         <div className="space-y-4">
           {cards.map((card) => (
-            <Card key={card.id} className="hover:shadow-md transition-shadow">
+            <Card key={`${card.id}-${selectedLanguage}`} className="hover:shadow-md transition-shadow">
               <CardContent className="p-4">
                 <div className="flex items-center gap-4">
                   <Link to={`/cards/${card.id}`}>

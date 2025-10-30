@@ -304,7 +304,8 @@
     "view": "表示",
     "download": "ダウンロード",
     "upload": "アップロード",
-    "selectLanguage": "言語を選択"
+    "selectLanguage": "言語を選択",
+    "clearFilters": "フィルターをクリア"
   },
   "errors": {
     "somethingWentWrong": "問題が発生しました",
@@ -320,6 +321,14 @@
     "linkCopiedDesc": "ダッシュボードリンクがクリップボードにコピーされました。",
     "failedToCopy": "コピー失敗",
     "copyManually": "リンクを手動でコピーしてください。"
+  },
+  "languages": {
+    "en": "英語",
+    "es": "スペイン語",
+    "de": "ドイツ語",
+    "fr": "フランス語",
+    "zh": "中国語",
+    "ja": "日本語"
   },
   "notFound": {
     "title": "ページが見つかりません",

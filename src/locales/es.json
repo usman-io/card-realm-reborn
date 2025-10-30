@@ -239,6 +239,14 @@
     "lastPage": "Última página",
     "ellipsis": "Más páginas"
   },
+  "languages": {
+    "en": "Inglés",
+    "es": "Español",
+    "de": "Alemán",
+    "fr": "Francés",
+    "zh": "Chino",
+    "ja": "Japonés"
+  },
   "common": {
     "loading": "Cargando...",
     "save": "Guardar",
@@ -266,7 +274,8 @@
     "view": "Ver",
     "download": "Descargar",
     "upload": "Subir",
-    "selectLanguage": "Seleccionar Idioma"
+    "selectLanguage": "Seleccionar Idioma",
+    "clearFilters": "Limpiar Filtros"
   },
   "errors": {
     "somethingWentWrong": "Algo salió mal",

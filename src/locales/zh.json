@@ -248,7 +248,16 @@
     "view": "查看",
     "download": "下载",
     "upload": "上传",
-    "selectLanguage": "选择语言"
+    "selectLanguage": "选择语言",
+    "clearFilters": "清除筛选"
+  },
+  "languages": {
+    "en": "英语",
+    "es": "西班牙语",
+    "de": "德语",
+    "fr": "法语",
+    "zh": "中文",
+    "ja": "日语"
   },
   "pagination": {
     "previous": "上一页",
